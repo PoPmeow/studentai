@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(python -c \"import anthropic, dotenv, requests, rich; print\\('deps ok'\\)\")",
+      "PowerShell($env:PYTHONIOENCODING='utf-8'; python F:\\\\app\\\\smoke_test.py)",
+      "PowerShell(Start-Sleep -Seconds 3; \\(Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8765/api/dashboard\\).Content; \\(Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8765/\\).StatusCode)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}
