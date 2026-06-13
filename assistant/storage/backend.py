@@ -28,10 +28,15 @@ class _JsonBackend:
             return default
 
     def write(self, name, data):
-        self.dir.mkdir(parents=True, exist_ok=True)
-        (self.dir / f"{name}.json").write_text(
-            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-        )
+        # บน read-only FS (serverless ที่ไม่มี Upstash) การเขียนอาจล้มเหลว —
+        # กลืน error ไว้เพื่อไม่ให้ทั้ง request พัง (ข้อมูลจะอยู่แค่ในหน่วยความจำ)
+        try:
+            self.dir.mkdir(parents=True, exist_ok=True)
+            (self.dir / f"{name}.json").write_text(
+                json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+            )
+        except OSError:
+            pass
 
 
 class _UpstashBackend:

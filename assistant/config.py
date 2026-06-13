@@ -23,9 +23,14 @@ GOOGLE_SHEETS_CREDENTIALS_FILE = os.getenv("GOOGLE_SHEETS_CREDENTIALS_FILE", "")
 GOOGLE_SHEET_NAME = os.getenv("GOOGLE_SHEET_NAME", "StudentAssistant")
 
 # ===== Storage backend =====
-# ถ้าตั้ง 2 ตัวนี้ (เช่นบน Vercel) จะเก็บข้อมูลบน Upstash Redis แทนไฟล์ JSON
-UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL", "").strip()
-UPSTASH_REDIS_REST_TOKEN = os.getenv("UPSTASH_REDIS_REST_TOKEN", "").strip()
+# ถ้ามีค่าเหล่านี้ (เช่นบน Vercel) จะเก็บข้อมูลบน Upstash Redis แทนไฟล์ JSON
+# รองรับทั้งชื่อของ Upstash (UPSTASH_*) และของ Vercel KV integration (KV_REST_API_*)
+UPSTASH_REDIS_REST_URL = (
+    os.getenv("UPSTASH_REDIS_REST_URL") or os.getenv("KV_REST_API_URL") or ""
+).strip()
+UPSTASH_REDIS_REST_TOKEN = (
+    os.getenv("UPSTASH_REDIS_REST_TOKEN") or os.getenv("KV_REST_API_TOKEN") or ""
+).strip()
 USE_UPSTASH = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
 
 # ===== Cron / runtime =====
@@ -34,8 +39,13 @@ CRON_SECRET = os.getenv("CRON_SECRET", "").strip()
 # Vercel ตั้ง env VERCEL=1 ให้อัตโนมัติ — ใช้รู้ว่ารันบน serverless (ห้ามตั้ง background loop)
 IS_SERVERLESS = bool(os.getenv("VERCEL"))
 
-# local JSON dir (ใช้เฉพาะตอนไม่ได้ตั้ง Upstash). กัน read-only FS บน serverless ไว้
-DATA_DIR = BASE_DIR / os.getenv("DATA_DIR", "data")
+# ที่เก็บ JSON (ใช้เมื่อไม่ได้ตั้ง Upstash). บน serverless ดิสก์เป็น read-only —
+# จึงเขียนลง /tmp แทน (กัน crash; แต่ข้อมูลไม่ถาวร ต้องตั้ง Upstash เพื่อเก็บจริง)
+if IS_SERVERLESS and not USE_UPSTASH:
+    import tempfile
+    DATA_DIR = Path(tempfile.gettempdir()) / "studentai-data"
+else:
+    DATA_DIR = BASE_DIR / os.getenv("DATA_DIR", "data")
 try:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
 except OSError:
