@@ -24,8 +24,12 @@ function fmtDate(iso) {
 }
 function daysLeft(iso) {
   if (!iso) return null;
-  const diff = Math.ceil((new Date(iso) - new Date()) / 86400000);
-  if (isNaN(diff)) return null;
+  const due = new Date(iso);
+  if (isNaN(due)) return null;
+  // เทียบเป็น "วันปฏิทิน" (ตัดเวลาออก) — พรุ่งนี้ = 1 วัน ไม่นับวันนี้รวมเข้าไป
+  const a = new Date(); a.setHours(0, 0, 0, 0);
+  const b = new Date(due); b.setHours(0, 0, 0, 0);
+  const diff = Math.round((b - a) / 86400000);
   if (diff < 0) return { text: "เลยกำหนดแล้ว", urgent: true };
   if (diff === 0) return { text: "วันนี้", urgent: true };
   if (diff === 1) return { text: "พรุ่งนี้", urgent: true };

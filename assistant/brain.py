@@ -46,9 +46,6 @@ JSON object — no prose outside the JSON.
     "plan": [               // realistic study sessions BEFORE the due date
       {"date": "YYYY-MM-DD", "time": "HH:MM", "duration_min": <int>,
        "focus": "<what to study, Thai>"}
-    ],
-    "reminders": [          // when to ping the user
-      {"at": "YYYY-MM-DDTHH:MM", "message": "<short Thai reminder text>"}
     ]
   }
 }
@@ -60,9 +57,9 @@ JSON object — no prose outside the JSON.
 - Study plans: 1-4 sessions, 45-120 min each, evenings (19:00-21:00) unless
   told otherwise. Exams get more sessions than small assignments.
 - Personal events (trip, appointment) → type "event", "plan": [] (no study
-  sessions needed), but still add reminders.
-- Always add one reminder the evening before the due date, plus one at the
-  start of each study session.
+  sessions needed).
+- Do NOT output reminders — the app schedules them automatically (1 day and
+  1 hour before the due time).
 - Amounts: parse Thai number words too ("ร้อยห้าสิบ" = 150).
 - Output ONLY the JSON object. No markdown fences, no extra text.
 """

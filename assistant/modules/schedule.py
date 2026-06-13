@@ -1,7 +1,34 @@
 """Schedule module — store tasks + study plans, fire due reminders."""
+from datetime import datetime, timedelta
+
 from .. import config
 from ..notify import senders
 from ..storage import json_store
+
+# แจ้งเตือนล่วงหน้าก่อนถึงกำหนด (มาก่อนเสมอ ไม่เตือนหลังหมดเวลา)
+REMINDER_OFFSETS = [
+    (timedelta(days=1), "⏰ พรุ่งนี้ครบกำหนด"),
+    (timedelta(hours=1), "⏰ อีก 1 ชั่วโมงครบกำหนด"),
+]
+
+
+def _build_reminders(title: str, due: str | None) -> list[dict]:
+    """สร้าง reminder 1 วันก่อน + 1 ชม.ก่อน due — เฉพาะเวลาที่ยังมาไม่ถึง"""
+    try:
+        due_dt = datetime.fromisoformat(due)
+    except (ValueError, TypeError):
+        return []
+    due_label = due_dt.strftime("%d/%m %H:%M")
+    now = config.now()
+    out = []
+    for offset, prefix in REMINDER_OFFSETS:
+        at = due_dt - offset
+        if at > now:  # ข้ามอันที่เวลาผ่านไปแล้ว (เช่นงานที่เหลือไม่ถึง 1 ชม.)
+            out.append({
+                "at": at.isoformat(timespec="minutes"),
+                "message": f"{prefix}: {title} (ส่ง {due_label})",
+            })
+    return out
 
 
 def add_task(parsed: dict) -> dict:
@@ -16,16 +43,13 @@ def add_task(parsed: dict) -> dict:
     }
     saved = json_store.tasks.append(task)
 
-    reminders = json_store.reminders.load()
-    for r in parsed.get("reminders", []):
-        reminders.append({
-            "task_id": saved["id"],
-            "at": r.get("at"),
-            "message": r.get("message", f"อย่าลืม: {task['title']}"),
-            "sent": False,
-        })
-    json_store.reminders.save(reminders)
-    saved["reminder_count"] = len(parsed.get("reminders", []))
+    new_reminders = _build_reminders(task["title"], task["due"])
+    if new_reminders:
+        reminders = json_store.reminders.load()
+        for r in new_reminders:
+            reminders.append({"task_id": saved["id"], **r, "sent": False})
+        json_store.reminders.save(reminders)
+    saved["reminder_count"] = len(new_reminders)
     return saved
 
 
