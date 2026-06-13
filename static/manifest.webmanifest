@@ -1,0 +1,16 @@
+{
+  "name": "Student AI — ผู้ช่วยส่วนตัว",
+  "short_name": "Student AI",
+  "description": "ผู้ช่วยนักศึกษา: บันทึกรายจ่าย วางแผนอ่านหนังสือ และเตือน deadline ด้วย AI",
+  "lang": "th",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0d0e12",
+  "theme_color": "#6a52e0",
+  "icons": [
+    { "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}

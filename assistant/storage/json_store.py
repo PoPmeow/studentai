@@ -1,24 +1,21 @@
-"""Local JSON store — source of truth for state, history and preferences."""
-import json
-from pathlib import Path
-
-from .. import config
+"""Collections + key-value docs, backed by the pluggable storage backend
+(local JSON on disk, or Upstash Redis on Vercel). Source of truth for state,
+history and preferences.
+"""
+from .backend import backend
 
 
 class JsonStore:
+    """An id-keyed list collection (expenses, tasks, reminders)."""
+
     def __init__(self, name: str):
-        self.path: Path = config.DATA_DIR / f"{name}.json"
+        self.name = name
 
     def load(self) -> list:
-        if not self.path.exists():
-            return []
-        return json.loads(self.path.read_text(encoding="utf-8"))
+        return backend.read(self.name, [])
 
     def save(self, items: list) -> None:
-        self.path.write_text(
-            json.dumps(items, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        backend.write(self.name, items)
 
     def append(self, item: dict) -> dict:
         items = self.load()
@@ -45,6 +42,33 @@ class JsonStore:
         return None
 
 
+class KvStore:
+    """A single JSON document (dict), for settings/budgets/streak state."""
+
+    def __init__(self, name: str, default: dict | None = None):
+        self.name = name
+        self.default = default or {}
+
+    def get(self) -> dict:
+        data = backend.read(self.name, None)
+        return data if isinstance(data, dict) else dict(self.default)
+
+    def set(self, data: dict) -> dict:
+        backend.write(self.name, data)
+        return data
+
+    def update(self, **fields) -> dict:
+        data = self.get()
+        data.update(fields)
+        return self.set(data)
+
+
+# collections
 expenses = JsonStore("expenses")
 tasks = JsonStore("tasks")
 reminders = JsonStore("reminders")
+
+# key-value docs
+budgets = KvStore("budgets", {"monthly": 0, "categories": {}})
+streak = KvStore("streak", {"current": 0, "best": 0, "last_active": "", "history": []})
+insight_cache = KvStore("insight_cache", {})

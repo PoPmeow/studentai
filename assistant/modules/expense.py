@@ -4,8 +4,8 @@ Local JSON is the source of truth; Google Sheets is a mirror when configured.
 import csv
 import io
 from collections import defaultdict
-from datetime import datetime
 
+from .. import config
 from ..storage import json_store
 from ..storage.sheets import sheets
 
@@ -15,8 +15,8 @@ def record(expense: dict) -> dict:
 
     Returns the saved record with a `synced` flag describing the Sheets state.
     """
-    expense.setdefault("date", datetime.now().strftime("%Y-%m-%d"))
-    expense["recorded_at"] = datetime.now().isoformat(timespec="minutes")
+    expense.setdefault("date", config.now().strftime("%Y-%m-%d"))
+    expense["recorded_at"] = config.now().isoformat(timespec="minutes")
 
     saved = json_store.expenses.append(expense)
 
@@ -32,7 +32,7 @@ def record(expense: dict) -> dict:
 
 def monthly_summary(year: int | None = None, month: int | None = None) -> dict:
     """Total + per-category breakdown for one month (default: current)."""
-    now = datetime.now()
+    now = config.now()
     year, month = year or now.year, month or now.month
     prefix = f"{year:04d}-{month:02d}"
 

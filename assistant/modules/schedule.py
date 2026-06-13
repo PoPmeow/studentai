@@ -1,6 +1,5 @@
 """Schedule module — store tasks + study plans, fire due reminders."""
-from datetime import datetime
-
+from .. import config
 from ..notify import senders
 from ..storage import json_store
 
@@ -13,7 +12,7 @@ def add_task(parsed: dict) -> dict:
         "due": parsed.get("due"),
         "plan": parsed.get("plan", []),
         "done": False,
-        "created_at": datetime.now().isoformat(timespec="minutes"),
+        "created_at": config.now().isoformat(timespec="minutes"),
     }
     saved = json_store.tasks.append(task)
 
@@ -59,7 +58,7 @@ def delete_task(task_id: int) -> bool:
 
 def fire_due_reminders() -> list[dict]:
     """Send every unsent reminder whose time has passed. Returns those sent."""
-    now = datetime.now().isoformat(timespec="minutes")
+    now = config.now().isoformat(timespec="minutes")
     reminders = json_store.reminders.load()
     fired = []
     for r in reminders:
@@ -75,7 +74,7 @@ def fire_due_reminders() -> list[dict]:
 
 
 def pending_reminders() -> list:
-    now = datetime.now().isoformat(timespec="minutes")
+    now = config.now().isoformat(timespec="minutes")
     return sorted(
         (r for r in json_store.reminders.load()
          if not r.get("sent") and (r.get("at") or "") > now),

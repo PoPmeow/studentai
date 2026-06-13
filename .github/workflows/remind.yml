@@ -1,0 +1,19 @@
+name: Fire reminders
+
+# ยิง reminder ที่ถึงกำหนดทุก ~10 นาที (Vercel Hobby cron จำกัดวันละครั้ง
+# เลยใช้ GitHub Actions แทนเพื่อให้เตือนได้ใกล้เวลาจริง)
+# ต้องตั้ง repo secrets 2 ตัว: APP_URL (เช่น https://studentai.vercel.app) และ CRON_SECRET
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping reminder endpoint
+        run: |
+          curl -fsS -X POST "${{ secrets.APP_URL }}/api/cron/remind" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --max-time 30 || echo "reminder ping failed (will retry next run)"

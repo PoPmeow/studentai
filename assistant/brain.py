@@ -120,7 +120,7 @@ class Brain:
 
     def process(self, text: str) -> dict:
         """One call: detect intent, extract data, build plan, draft reply."""
-        now = datetime.now()
+        now = config.now()
         user_msg = (
             f"Current date/time: {now.strftime('%Y-%m-%d %H:%M')} "
             f"({now.strftime('%A')})\n\nUser message: {text}"
@@ -129,7 +129,7 @@ class Brain:
 
     def parse_slip(self, image_path: str) -> dict:
         """Vision call: parse a payment slip/receipt image into an expense."""
-        today = datetime.now().strftime("%Y-%m-%d")
+        today = config.now().strftime("%Y-%m-%d")
         prompt = SLIP_PROMPT.format(today=today)
         img = Image.open(image_path)
         return self._extract_json(self._generate([img, prompt]))

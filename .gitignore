@@ -1,8 +1,29 @@
+# ===== Secrets — NEVER commit =====
 .env
-data/
-__pycache__/
-*.pyc
+.env.*
+!.env.example
+*.json.key
+# Google service-account / OAuth credentials (any name)
+studentassistant-*.json
 service_account*.json
 credentials*.json
+*-service-account.json
+client_secret*.json
+
+# ===== Data (local store) =====
+data/
+
+# ===== Python =====
+__pycache__/
+*.pyc
 .venv/
 venv/
+python/
+/python
+
+# ===== Vercel =====
+.vercel/
+
+# ===== OS =====
+.DS_Store
+Thumbs.db

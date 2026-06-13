@@ -9,22 +9,32 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from assistant import config
 from assistant.brain import Brain
-from assistant.modules import expense, schedule
+from assistant.modules import budget, expense, insight, schedule, streak
 from assistant.notify import senders
 
-brain = Brain()
+# brain ต้องมี API key — บน Vercel ตอน build อาจยังไม่มี ทำให้ import ล้ม จึงสร้างแบบ lazy
+_brain = None
+
+
+def get_brain() -> Brain:
+    global _brain
+    if _brain is None:
+        _brain = Brain()
+    return _brain
+
+
 STATIC_DIR = Path(__file__).parent / "static"
 
 
 def _reminder_loop():
-    """Fire due reminders every 60s while the server is running."""
+    """Fire due reminders every 60s while the server is running (local only)."""
     while True:
         try:
             schedule.fire_due_reminders()
@@ -35,7 +45,9 @@ def _reminder_loop():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    threading.Thread(target=_reminder_loop, daemon=True).start()
+    # บน serverless (Vercel) ใช้ cron แทน — อย่าตั้ง thread ที่จะถูก kill ทันที
+    if not config.IS_SERVERLESS:
+        threading.Thread(target=_reminder_loop, daemon=True).start()
     yield
 
 
@@ -68,6 +80,11 @@ class CategoryIn(BaseModel):
     category: str
 
 
+class BudgetIn(BaseModel):
+    monthly: float | None = None
+    categories: dict[str, float] | None = None
+
+
 def dashboard_data() -> dict:
     summary = expense.monthly_summary()
     summary.pop("items", None)
@@ -75,6 +92,8 @@ def dashboard_data() -> dict:
         "summary": summary,
         "tasks": schedule.list_tasks(),
         "pending_reminders": schedule.pending_reminders()[:5],
+        "budget": budget.status(),
+        "streak": streak.status(),
         "channels": {
             "sheets": bool(config.GOOGLE_SHEETS_CREDENTIALS_FILE),
             "discord": bool(config.DISCORD_WEBHOOK_URL),
@@ -100,7 +119,7 @@ def post_message(msg: MessageIn):
     if not config.GEMINI_API_KEY:
         raise HTTPException(500, "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน .env")
     try:
-        result = brain.process(msg.text)
+        result = get_brain().process(msg.text)
     except Exception as e:
         raise HTTPException(502, friendly_ai_error(e))
 
@@ -108,8 +127,10 @@ def post_message(msg: MessageIn):
     payload = {"intent": intent, "reply": result.get("reply", "")}
     if intent == "expense" and result.get("expense"):
         payload["expense"] = expense.record(result["expense"])
+        streak.record_activity()
     elif intent == "schedule" and result.get("schedule"):
         payload["task"] = schedule.add_task(result["schedule"])
+        streak.record_activity()
     payload["dashboard"] = dashboard_data()
     return payload
 
@@ -123,7 +144,7 @@ def post_slip(file: UploadFile = File(...)):
         tmp.write(file.file.read())
         tmp_path = tmp.name
     try:
-        parsed = brain.parse_slip(tmp_path)
+        parsed = get_brain().parse_slip(tmp_path)
     except Exception as e:
         raise HTTPException(502, friendly_ai_error(e))
     finally:
@@ -132,6 +153,7 @@ def post_slip(file: UploadFile = File(...)):
     if parsed.get("amount") is None:
         raise HTTPException(422, "อ่านยอดเงินจากสลิปไม่ได้ ลองรูปที่ชัดกว่านี้")
     saved = expense.record(parsed)
+    streak.record_activity()
     return {
         "intent": "expense",
         "reply": f"บันทึกจากสลิปแล้ว: {saved.get('description', '')} {saved.get('amount', 0):,.0f} บาท",
@@ -144,6 +166,7 @@ def post_slip(file: UploadFile = File(...)):
 def post_task_done(task_id: int):
     if not schedule.mark_done(task_id):
         raise HTTPException(404, "ไม่พบงานนี้")
+    streak.record_activity()
     return {"ok": True, "dashboard": dashboard_data()}
 
 
@@ -198,6 +221,51 @@ def notify_test():
         raise HTTPException(
             500, "ส่งไม่สำเร็จ — ยังไม่ได้ตั้งค่า Discord/LINE ใน .env หรือค่าไม่ถูกต้อง")
     return {"ok": True, "sent_via": sent}
+
+
+# ───────── budget ─────────
+
+@app.get("/api/budgets")
+def get_budgets():
+    return budget.status()
+
+
+@app.post("/api/budgets")
+def post_budgets(body: BudgetIn):
+    budget.set_budgets(monthly=body.monthly, categories=body.categories)
+    return {"ok": True, "budget": budget.status(), "dashboard": dashboard_data()}
+
+
+# ───────── AI insight ─────────
+
+@app.get("/api/insight")
+def get_insight(force: bool = False):
+    if not config.GEMINI_API_KEY:
+        # ยังตอบได้ด้วย rule-based fallback ภายใน insight.generate()
+        pass
+    return insight.generate(force=force)
+
+
+# ───────── streak ─────────
+
+@app.get("/api/streak")
+def get_streak():
+    return streak.status()
+
+
+# ───────── cron (GitHub Actions / Vercel Cron) ─────────
+
+@app.api_route("/api/cron/remind", methods=["GET", "POST"])
+def cron_remind(request: Request, key: str = ""):
+    """ยิง reminder ที่ถึงกำหนด. ป้องกันด้วย CRON_SECRET ผ่าน ?key= หรือ Bearer token."""
+    if config.CRON_SECRET:
+        auth = request.headers.get("authorization", "")
+        bearer = auth[7:] if auth.lower().startswith("bearer ") else ""
+        if key != config.CRON_SECRET and bearer != config.CRON_SECRET:
+            raise HTTPException(401, "unauthorized")
+    fired = schedule.fire_due_reminders()
+    return {"ok": True, "fired": len(fired),
+            "messages": [f["message"] for f in fired]}
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

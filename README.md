@@ -1,29 +1,36 @@
 # Student AI 🎓 — ผู้ช่วยส่วนตัวสำหรับนักศึกษา
 
-ผู้ช่วย AI ภาษาไทย ขับเคลื่อนด้วย **Gemini 2.5 Flash** — พิมพ์ภาษาคนได้เลย ระบบจะ detect intent เองว่าเป็นเรื่อง **ตารางเรียน/deadline** หรือ **รายจ่าย** แล้ว route ไปยัง module ที่ถูกต้องอัตโนมัติ
+ผู้ช่วย AI ภาษาไทย ขับเคลื่อนด้วย **Gemini** — พิมพ์/พูดภาษาคนได้เลย ระบบจะ detect intent เองว่าเป็นเรื่อง **ตารางเรียน/deadline** หรือ **รายจ่าย** แล้ว route ไปยัง module ที่ถูกต้องอัตโนมัติ ใช้ได้ทั้งบนคอมและมือถือ (ติดตั้งเป็นแอปแบบ PWA ได้)
+
+## ฟีเจอร์
+
+- 💬 **แชทอัจฉริยะ** — แยก intent (รายจ่าย / ตารางงาน / event ส่วนตัว / คุยเล่น) ในข้อความเดียว + auto-retry เวลา API ล่ม
+- 🎤 **พูดแทนพิมพ์** — กดไมค์พูดภาษาไทยบันทึกได้เลย (Web Speech API)
+- 🧾 **อ่านสลิป** — แนบรูป/ลาก/วาง แล้ว AI ดึงยอด+หมวดให้
+- 📊 **Dashboard + AI Insight** — สรุปสัปดาห์โดย AI + กราฟแนวโน้มรายจ่าย/donut หมวด
+- 🎯 **งบ + เป้าหมาย** — ตั้งงบรายเดือน/รายหมวด progress ring เตือนใกล้/เกินงบ
+- 📅 **ปฏิทิน + 🔥 Streak** — ปฏิทินรวม deadline/แผน/event + ระบบ streak และ badge
+- 🔔 **เตือนอัตโนมัติ** — ยิง Discord/LINE ตามเวลา
 
 ## Architecture
 
 ```
- Input (text / slip image)
+ Input (text / voice / slip image)
         │
         ▼
  ┌──────────────────┐
- │ Gemini 2.5 Flash │  intent detection · parsing · planning (1 API call)
+ │     Gemini       │  intent detection · parsing · planning (1 API call)
  └────────┬─────────┘
     ┌─────┴──────┐
     ▼            ▼
- Schedule     Expense
+ Schedule     Expense ── Budget · AI Insight · Streak
  module       module
     │            │
- Discord/     Google
- LINE push    Sheets
-    └─────┬──────┘
-          ▼
-   Local JSON (data/) — source of truth
+ Discord/     storage backend
+ LINE push    (JSON local  /  Upstash Redis บน Vercel)
 ```
 
-## ติดตั้ง
+## รันในเครื่อง
 
 ```powershell
 pip install -r requirements.txt
@@ -34,74 +41,74 @@ python server.py     # 🌐 Web app (แนะนำ) → เปิด http://12
 python main.py       # 💻 หรือใช้แบบ CLI ใน terminal ก็ได้
 ```
 
-> Web app มี reminder loop ในตัว (เช็คทุก 60 วิ) — แค่เปิดเซิร์ฟเวอร์ทิ้งไว้ reminder จะยิงเอง
+ในเครื่องจะเก็บข้อมูลลงไฟล์ `data/*.json` และมี reminder loop ในตัว (เช็คทุก 60 วิ)
 
-## วิธีใช้
+## 🚀 Deploy ขึ้น Vercel + GitHub
 
-| พิมพ์ | สิ่งที่เกิดขึ้น |
-|---|---|
-| `จ่ายข้าว 65 บาท` | บันทึกหมวด "อาหาร" ลง JSON + Sheets ทันที |
-| `วันพุธมีส่ง OS lab` | สร้างแผนอ่านหนังสือ + ตั้ง reminder อัตโนมัติ |
-| `/slip slip.jpg` | อ่านสลิปด้วย vision → บันทึกรายจ่าย |
-| `/tasks` | ดูงานที่ค้าง |
-| `/done 3` | ปิดงาน #3 |
-| `/summary` | สรุปรายจ่ายเดือนนี้แยกหมวด |
-| `/remind` | ยิง reminder ที่ถึงกำหนดออก Discord/LINE |
-| `/quit` | ออก |
+> Vercel เป็น serverless — ไฟล์ในเครื่องไม่ถูกเก็บถาวร และรัน background loop ไม่ได้
+> โปรเจกต์นี้จึงเก็บข้อมูลบน **Upstash Redis** และยิง reminder ด้วย **GitHub Actions cron**
+> (โค้ดชุดเดียวกัน — ถ้าไม่ตั้ง `UPSTASH_*` จะ fallback เป็นไฟล์ JSON อัตโนมัติ)
 
-## คีย์ลัด & คลิกขวา (web app)
-
-- `Ctrl+1/2/3` สลับหน้า แชท/งาน/รายจ่าย · `/` หรือ `Ctrl+K` โฟกัสช่องพิมพ์ · `?` ดูคีย์ลัดทั้งหมด
-- `Ctrl+U` แนบรูปสลิป · `Ctrl+V` วางรูปจากคลิปบอร์ด · ลากรูปมาวางก็ได้
-- `↑/↓` ในช่องพิมพ์ เรียกข้อความเก่า · `[` `]` เลื่อนดูเดือนในหน้ารายจ่าย
-- **คลิกขวา**ที่การ์ดงาน → เสร็จ/คัดลอกแผน/ลบ · คลิกขวารายการรายจ่าย → คัดลอก/เปลี่ยนหมวด/ลบ
-- ปุ่ม **Export CSV** ในหน้ารายจ่าย ดาวน์โหลดทั้งหมดเปิดใน Excel ได้ · ปุ่ม **ทดสอบแจ้งเตือน** ใน sidebar ลองยิง Discord/LINE
-
-## Reminder อัตโนมัติ
-
-Reminder ถูกเก็บไว้ใน `data/reminders.json` — ให้ระบบยิงเองตามเวลา มี 2 ทาง:
-
+**1. Push ขึ้น GitHub**
 ```powershell
-python main.py watch    # รันค้างไว้ เช็คทุก 60 วิ
-python main.py remind   # เช็คครั้งเดียว (เหมาะกับ Task Scheduler)
+git add -A
+git commit -m "Student AI: web app + features + Vercel deploy"
+git push
 ```
+> `.env` และไฟล์ service account ถูก `.gitignore` ไว้แล้ว — ความลับไม่หลุด
 
-ตั้ง Windows Task Scheduler ให้รัน `python F:\app\main.py remind` ทุก 5–15 นาทีก็ได้
+**2. สร้าง Upstash Redis**
+- บน Vercel → โปรเจกต์ → **Storage → Create → Upstash Redis** (มีฟรีทีเออร์)
+- มันจะใส่ `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` ให้อัตโนมัติ
+
+**3. ตั้ง Environment Variables บน Vercel** (Settings → Environment Variables)
+```
+GEMINI_API_KEY   = AIza...
+MODEL            = gemini-2.5-flash
+CRON_SECRET      = <สุ่มรหัสอะไรก็ได้>
+TZ               = Asia/Bangkok
+# (optional) DISCORD_WEBHOOK_URL, LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID
+```
+แล้ว Import repo จาก GitHub → Deploy (ใช้ `vercel.json` ที่เตรียมไว้แล้ว ไม่ต้องตั้งค่าเพิ่ม)
+
+**4. เปิด reminder อัตโนมัติ (GitHub Actions)** — ที่ repo บน GitHub → Settings → Secrets and variables → Actions → เพิ่ม:
+```
+APP_URL      = https://<ชื่อโปรเจกต์>.vercel.app
+CRON_SECRET  = <รหัสเดียวกับบน Vercel>
+```
+workflow `.github/workflows/remind.yml` จะยิง `/api/cron/remind` ทุก ~10 นาทีให้เอง
+
+## วิธีใช้ (web app)
+
+| ทำ | ผล |
+|---|---|
+| พิมพ์/พูด `จ่ายข้าว 65 บาท` | บันทึกหมวด "อาหาร" ทันที |
+| พิมพ์/พูด `วันพุธมีส่ง OS lab` | สร้างแผนอ่าน + ตั้ง reminder |
+| แนบ/ลาก/วางรูปสลิป | อ่านสลิปด้วย vision → บันทึกรายจ่าย |
+
+**คีย์ลัด:** `Ctrl+1..5` สลับหน้า · `/` หรือ `Ctrl+K` ช่องพิมพ์ · `Ctrl+U` แนบสลิป · `Ctrl+V` วางรูป · `↑/↓` ข้อความเก่า · `[` `]` เลื่อนเดือน · `?` ดูทั้งหมด
+**คลิกขวา:** การ์ดงาน → เสร็จ/คัดลอกแผน/ลบ · รายการรายจ่าย → คัดลอก/เปลี่ยนหมวด/ลบ
 
 ## ตั้งค่า Notification (optional)
 
-- **Discord** — สร้าง webhook: Server Settings → Integrations → Webhooks แล้วเอา URL ใส่ `DISCORD_WEBHOOK_URL`
-- **LINE** — ⚠️ LINE Notify ปิดบริการแล้ว (มี.ค. 2025) โปรเจกต์นี้จึงใช้ **LINE Messaging API** แทน: สร้าง channel ที่ [developers.line.biz](https://developers.line.biz) → เอา Channel access token + User ID ใส่ใน `.env`
-
-## ตั้งค่า Google Sheets (optional)
-
-1. สร้าง project ใน Google Cloud Console → เปิดใช้ Sheets API + Drive API
-2. สร้าง Service Account → download key เป็น JSON → วางไฟล์ไว้ในโฟลเดอร์นี้
-3. ใส่ path ไฟล์ใน `GOOGLE_SHEETS_CREDENTIALS_FILE`
-4. สร้าง Google Sheet ชื่อตาม `GOOGLE_SHEET_NAME` แล้ว **แชร์ให้อีเมลของ service account** (สิทธิ์ Editor)
-
-ถ้าไม่ตั้งค่า ระบบจะเก็บลง JSON อย่างเดียว — ใช้งานได้ปกติทุกฟีเจอร์
-
-## หมายเหตุเรื่อง Voice input
-
-Diagram ระบุ text/voice — ตัวโปรแกรมรับเป็น text ดังนั้น voice ให้ใช้ dictation ของ OS/มือถือ (พูดแล้วแปลงเป็นข้อความ) พิมพ์เข้ามาได้เลย หรือต่อ STT (เช่น whisper) ไว้หน้าโปรแกรมเองได้ภายหลัง
+- **Discord** — สร้าง webhook: Server Settings → Integrations → Webhooks → ใส่ใน `DISCORD_WEBHOOK_URL`
+- **LINE** — ⚠️ LINE Notify ปิดแล้ว (มี.ค. 2025) ใช้ **LINE Messaging API** แทน: สร้าง channel ที่ [developers.line.biz](https://developers.line.biz) → เอา Channel access token + User ID ใส่ `.env`
 
 ## โครงสร้างโปรเจกต์
 
 ```
 app/
+├── server.py                  # FastAPI web app (รันในเครื่อง + เป็น core ของ Vercel)
 ├── main.py                    # CLI entry — chat / remind / watch
+├── api/index.py               # Vercel serverless entrypoint (re-export server.app)
+├── vercel.json                # Vercel build + routes + daily cron
+├── .github/workflows/remind.yml  # GitHub Actions cron ยิง reminder ทุก 10 นาที
 ├── assistant/
-│   ├── brain.py               # Core brain: Gemini (intent + parse + plan)
-│   ├── config.py              # .env settings
-│   ├── ui.py                  # rich terminal UI
-│   ├── modules/
-│   │   ├── schedule.py        # study planner + reminders
-│   │   └── expense.py         # expense record + monthly summary
-│   ├── storage/
-│   │   ├── json_store.py      # local JSON (source of truth)
-│   │   └── sheets.py          # Google Sheets mirror (optional)
-│   └── notify/
-│       └── senders.py         # Discord webhook + LINE Messaging API
-└── data/                      # expenses.json · tasks.json · reminders.json
+│   ├── brain.py               # Core brain: Gemini (intent + parse + plan + retry)
+│   ├── config.py              # .env + timezone + serverless detection
+│   ├── modules/               # schedule · expense · budget · insight · streak
+│   ├── storage/               # backend (JSON/Upstash) · json_store · sheets
+│   └── notify/senders.py      # Discord webhook + LINE Messaging API
+├── static/                    # index.html · style.css · app.js · PWA (manifest, sw, icon)
+└── data/                      # (local เท่านั้น) expenses · tasks · reminders · budgets · streak
 ```
