@@ -46,6 +46,8 @@ const ICONS = {
   trash: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
   copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
   tag: '<path d="M12.6 2.6 21 11a2 2 0 0 1 0 2.8l-7.2 7.2a2 2 0 0 1-2.8 0L2.6 12.6A2 2 0 0 1 2 11.2V4a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+  logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
 };
 const iconSVG = (name) => ICONS[name]
   ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`
@@ -86,6 +88,7 @@ function toast(msg, ok = false) {
 async function api(path, opts = {}) {
   const res = await fetch(path, opts);
   if (!res.ok) {
+    if (res.status === 401 && !path.startsWith("/api/login")) showAuth();
     let detail = `HTTP ${res.status}`;
     try { detail = (await res.json()).detail || detail; } catch {}
     throw new Error(detail);
@@ -603,5 +606,38 @@ const installBtn = $("#install-btn");
 window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); deferredPrompt = e; installBtn.hidden = false; });
 installBtn.addEventListener("click", async () => { if (!deferredPrompt) return; deferredPrompt.prompt(); await deferredPrompt.userChoice; deferredPrompt = null; installBtn.hidden = true; });
 
-/* init */
-api("/api/dashboard").then((d) => { renderDashboard(d); loadInsight(); }).catch((e) => toast(e.message));
+/* ════════ Auth ════════ */
+const authOverlay = $("#auth-overlay");
+function showAuth() { authOverlay.classList.add("show"); setTimeout(() => $("#auth-username")?.focus(), 50); }
+function hideAuth() { authOverlay.classList.remove("show"); }
+
+function onAuthed(username) {
+  hideAuth();
+  $("#current-user").textContent = username;
+  api("/api/dashboard").then((d) => { renderDashboard(d); loadInsight(); }).catch((e) => toast(e.message));
+}
+
+$("#auth-form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const username = $("#auth-username").value.trim();
+  const pin = $("#auth-pin").value.trim();
+  $("#auth-error").textContent = "";
+  const btn = $(".auth-submit"); btn.disabled = true;
+  try {
+    const r = await api("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, pin }) });
+    $("#auth-pin").value = "";
+    onAuthed(r.username);
+  } catch (err) { $("#auth-error").textContent = err.message; }
+  finally { btn.disabled = false; }
+});
+
+$("#logout-btn").addEventListener("click", async () => {
+  try { await fetch("/api/logout", { method: "POST" }); } catch {}
+  location.reload();
+});
+
+/* init — check session first, then load app or show login */
+fetch("/api/me").then(async (r) => {
+  if (r.ok) { const { username } = await r.json(); onAuthed(username); }
+  else showAuth();
+}).catch(() => showAuth());

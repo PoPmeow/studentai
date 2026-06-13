@@ -9,12 +9,12 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import uvicorn
-from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi import Cookie, Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from assistant import config
+from assistant import auth, config
 from assistant.brain import Brain
 from assistant.modules import budget, expense, insight, schedule, streak
 from assistant.notify import senders
@@ -85,6 +85,44 @@ class BudgetIn(BaseModel):
     categories: dict[str, float] | None = None
 
 
+class LoginIn(BaseModel):
+    username: str
+    pin: str
+
+
+async def require_user(sid: str = Cookie(default="")) -> str:
+    """ตรวจ session cookie แล้วตั้ง current_user ของ request (async เพื่อให้
+    contextvar ส่งต่อไปยัง sync endpoint ที่รันใน threadpool ได้)"""
+    username = auth.verify_token(sid)
+    if not username:
+        raise HTTPException(401, "กรุณาเข้าสู่ระบบ")
+    auth.current_user.set(username)
+    return username
+
+
+@app.post("/api/login")
+def login(body: LoginIn, response: Response):
+    token, err = auth.register_or_login(body.username, body.pin)
+    if not token:
+        raise HTTPException(401, err)
+    response.set_cookie(
+        "sid", token, max_age=90 * 86400, httponly=True,
+        samesite="lax", secure=config.IS_SERVERLESS, path="/",
+    )
+    return {"ok": True, "username": auth.normalize_username(body.username)}
+
+
+@app.post("/api/logout")
+def logout(response: Response):
+    response.delete_cookie("sid", path="/")
+    return {"ok": True}
+
+
+@app.get("/api/me")
+def me(user: str = Depends(require_user)):
+    return {"username": user}
+
+
 def dashboard_data() -> dict:
     summary = expense.monthly_summary()
     summary.pop("items", None)
@@ -110,12 +148,12 @@ def index():
 
 
 @app.get("/api/dashboard")
-def get_dashboard():
+def get_dashboard(user: str = Depends(require_user)):
     return dashboard_data()
 
 
 @app.post("/api/message")
-def post_message(msg: MessageIn):
+def post_message(msg: MessageIn, user: str = Depends(require_user)):
     if not config.GEMINI_API_KEY:
         raise HTTPException(500, "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน .env")
     try:
@@ -136,7 +174,7 @@ def post_message(msg: MessageIn):
 
 
 @app.post("/api/slip")
-def post_slip(file: UploadFile = File(...)):
+def post_slip(file: UploadFile = File(...), user: str = Depends(require_user)):
     if not config.GEMINI_API_KEY:
         raise HTTPException(500, "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน .env")
     suffix = Path(file.filename or "slip.jpg").suffix or ".jpg"
@@ -163,7 +201,7 @@ def post_slip(file: UploadFile = File(...)):
 
 
 @app.post("/api/tasks/{task_id}/done")
-def post_task_done(task_id: int):
+def post_task_done(task_id: int, user: str = Depends(require_user)):
     if not schedule.mark_done(task_id):
         raise HTTPException(404, "ไม่พบงานนี้")
     streak.record_activity()
@@ -171,14 +209,14 @@ def post_task_done(task_id: int):
 
 
 @app.delete("/api/tasks/{task_id}")
-def delete_task(task_id: int):
+def delete_task(task_id: int, user: str = Depends(require_user)):
     if not schedule.delete_task(task_id):
         raise HTTPException(404, "ไม่พบงานนี้")
     return {"ok": True, "dashboard": dashboard_data()}
 
 
 @app.get("/api/summary")
-def get_summary(month: str = ""):
+def get_summary(month: str = "", user: str = Depends(require_user)):
     """Month summary incl. individual items. month format: YYYY-MM"""
     try:
         if month:
@@ -190,14 +228,14 @@ def get_summary(month: str = ""):
 
 
 @app.delete("/api/expenses/{expense_id}")
-def delete_expense(expense_id: int):
+def delete_expense(expense_id: int, user: str = Depends(require_user)):
     if not expense.delete(expense_id):
         raise HTTPException(404, "ไม่พบรายการนี้")
     return {"ok": True, "dashboard": dashboard_data()}
 
 
 @app.patch("/api/expenses/{expense_id}")
-def patch_expense(expense_id: int, body: CategoryIn):
+def patch_expense(expense_id: int, body: CategoryIn, user: str = Depends(require_user)):
     updated = expense.update_category(expense_id, body.category)
     if not updated:
         raise HTTPException(404, "ไม่พบรายการนี้")
@@ -205,7 +243,7 @@ def patch_expense(expense_id: int, body: CategoryIn):
 
 
 @app.get("/api/export/expenses.csv")
-def export_expenses():
+def export_expenses(user: str = Depends(require_user)):
     # utf-8-sig BOM so Thai text opens correctly in Excel
     return Response(
         content=expense.to_csv().encode("utf-8-sig"),
@@ -215,7 +253,7 @@ def export_expenses():
 
 
 @app.post("/api/notify/test")
-def notify_test():
+def notify_test(user: str = Depends(require_user)):
     sent = senders.broadcast("🔔 ทดสอบแจ้งเตือนจาก Student AI — ใช้งานได้แล้ว!")
     if not sent:
         raise HTTPException(
@@ -226,12 +264,12 @@ def notify_test():
 # ───────── budget ─────────
 
 @app.get("/api/budgets")
-def get_budgets():
+def get_budgets(user: str = Depends(require_user)):
     return budget.status()
 
 
 @app.post("/api/budgets")
-def post_budgets(body: BudgetIn):
+def post_budgets(body: BudgetIn, user: str = Depends(require_user)):
     budget.set_budgets(monthly=body.monthly, categories=body.categories)
     return {"ok": True, "budget": budget.status(), "dashboard": dashboard_data()}
 
@@ -239,7 +277,7 @@ def post_budgets(body: BudgetIn):
 # ───────── AI insight ─────────
 
 @app.get("/api/insight")
-def get_insight(force: bool = False):
+def get_insight(force: bool = False, user: str = Depends(require_user)):
     if not config.GEMINI_API_KEY:
         # ยังตอบได้ด้วย rule-based fallback ภายใน insight.generate()
         pass
@@ -249,7 +287,7 @@ def get_insight(force: bool = False):
 # ───────── streak ─────────
 
 @app.get("/api/streak")
-def get_streak():
+def get_streak(user: str = Depends(require_user)):
     return streak.status()
 
 
@@ -257,15 +295,22 @@ def get_streak():
 
 @app.api_route("/api/cron/remind", methods=["GET", "POST"])
 def cron_remind(request: Request, key: str = ""):
-    """ยิง reminder ที่ถึงกำหนด. ป้องกันด้วย CRON_SECRET ผ่าน ?key= หรือ Bearer token."""
+    """ยิง reminder ที่ถึงกำหนดของทุก user. ป้องกันด้วย CRON_SECRET (?key= หรือ Bearer)."""
     if config.CRON_SECRET:
-        auth = request.headers.get("authorization", "")
-        bearer = auth[7:] if auth.lower().startswith("bearer ") else ""
+        authz = request.headers.get("authorization", "")
+        bearer = authz[7:] if authz.lower().startswith("bearer ") else ""
         if key != config.CRON_SECRET and bearer != config.CRON_SECRET:
             raise HTTPException(401, "unauthorized")
-    fired = schedule.fire_due_reminders()
-    return {"ok": True, "fired": len(fired),
-            "messages": [f["message"] for f in fired]}
+    total, messages = 0, []
+    for username in auth.list_users():
+        tok = auth.current_user.set(username)
+        try:
+            fired = schedule.fire_due_reminders()
+        finally:
+            auth.current_user.reset(tok)
+        total += len(fired)
+        messages += [f["message"] for f in fired]
+    return {"ok": True, "fired": total, "messages": messages}
 
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")

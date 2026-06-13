@@ -11,6 +11,7 @@
 - 🎯 **งบ + เป้าหมาย** — ตั้งงบรายเดือน/รายหมวด progress ring เตือนใกล้/เกินงบ
 - 📅 **ปฏิทิน + 🔥 Streak** — ปฏิทินรวม deadline/แผน/event + ระบบ streak และ badge
 - 🔔 **เตือนอัตโนมัติ** — ยิง Discord/LINE ตามเวลา
+- 👥 **หลายบัญชี** — ล็อกอินด้วยชื่อผู้ใช้ + PIN, ข้อมูลแต่ละคนแยกกัน (ให้เพื่อนใช้ได้)
 
 ## Architecture
 
@@ -66,6 +67,7 @@ git push
 GEMINI_API_KEY   = AIza...
 MODEL            = gemini-2.5-flash
 CRON_SECRET      = <สุ่มรหัสอะไรก็ได้>
+SESSION_SECRET   = <สุ่มรหัสอีกตัว — ใช้เซ็น login; ถ้าไม่ตั้งจะใช้ CRON_SECRET แทน>
 TZ               = Asia/Bangkok
 # (optional) DISCORD_WEBHOOK_URL, LINE_CHANNEL_ACCESS_TOKEN, LINE_USER_ID
 ```

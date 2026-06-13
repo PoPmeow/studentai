@@ -36,6 +36,12 @@ USE_UPSTASH = bool(UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN)
 # ===== Cron / runtime =====
 # ใช้กับ /api/cron/remind — GitHub Actions จะแนบ token นี้มาเพื่อยืนยันตัวตน
 CRON_SECRET = os.getenv("CRON_SECRET", "").strip()
+
+# ใช้เซ็น session token ของระบบล็อกอิน (ต้องคงที่ ไม่งั้นทุกคนหลุดล็อกอินเมื่อรีสตาร์ท)
+# บน Vercel ให้ตั้ง SESSION_SECRET เอง; ถ้าไม่ตั้งจะ fallback ไป CRON_SECRET
+SESSION_SECRET = (
+    os.getenv("SESSION_SECRET") or CRON_SECRET or "dev-insecure-secret-change-me"
+).strip()
 # Vercel ตั้ง env VERCEL=1 ให้อัตโนมัติ — ใช้รู้ว่ารันบน serverless (ห้ามตั้ง background loop)
 IS_SERVERLESS = bool(os.getenv("VERCEL"))
 
