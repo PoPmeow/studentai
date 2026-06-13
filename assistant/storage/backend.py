@@ -58,7 +58,7 @@ class _UpstashBackend:
             self.url,
             headers={"Authorization": f"Bearer {self.token}"},
             json=list(args),
-            timeout=10,
+            timeout=5,
         )
         resp.raise_for_status()
         return resp.json().get("result")

@@ -89,12 +89,20 @@ class Brain:
         )
 
     def _generate(self, contents) -> str:
-        """Call Gemini with auto-retry on transient errors (429/500/503).
+        """Call Gemini with a SHORT auto-retry on transient errors (429/500/503).
 
-        429 มักแนบ retryDelay มาด้วย — เคารพค่านั้น, ตัวอื่นใช้ exponential backoff
+        บน serverless (Vercel) ห้ามรอนาน — function มี timeout ราว 10-60 วิ ถ้า
+        นั่งรอ retryDelay ของ Gemini (สูงสุด 30 วิ × หลายรอบ) จะค้างจนเกิน timeout
+        แล้วได้ 502 แทน. จึงจำกัดจำนวนรอบและเวลารอให้สั้น แล้ว fail เร็ว เพื่อให้
+        ผู้ใช้กด "ลองอีกครั้ง" เองได้ทันที (เร็วกว่าค้างยาวๆ)
         """
-        delay = 2.0
-        for attempt in range(MAX_RETRIES + 1):
+        if config.IS_SERVERLESS:
+            max_retries, wait_cap = 1, 2.0   # รวมแล้วไม่เกิน ~4 วิ
+        else:
+            max_retries, wait_cap = MAX_RETRIES, 8.0
+
+        delay = 1.0
+        for attempt in range(max_retries + 1):
             try:
                 response = self.client.models.generate_content(
                     model=self.model_name,
@@ -104,14 +112,14 @@ class Brain:
                 return response.text
             except errors.APIError as e:
                 code = getattr(e, "code", None)
-                if code not in RETRYABLE_CODES or attempt == MAX_RETRIES:
+                if code not in RETRYABLE_CODES or attempt == max_retries:
                     raise
                 wait = delay
                 if code == 429:
                     m = re.search(r"retryDelay'?\"?: '?\"?(\d+)s", str(e))
                     if m:
-                        wait = min(int(m.group(1)) + 1, 30)
-                time.sleep(wait)
+                        wait = int(m.group(1)) + 1
+                time.sleep(min(wait, wait_cap))  # อย่าบล็อก function นานเกินไป
                 delay *= 2
         raise RuntimeError("unreachable")
 
