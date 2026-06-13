@@ -13,6 +13,48 @@ const fmtMoney = (n) => Number(n || 0).toLocaleString("th-TH", { maximumFraction
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g,
   (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+/* ════════ Inline SVG icons (Lucide-style, currentColor) ════════ */
+const ICONS = {
+  zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
+  home: '<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+  chat: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',
+  book: '<path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+  wallet: '<path d="M19 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0 0 4h15a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1h-3a2 2 0 0 1 0-4h4"/><path d="M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-4"/>',
+  sparkles: '<path d="M9.9 15.5 8.5 14 2.4 12.5a.5.5 0 0 1 0-1L8.5 10l1.4-6.1a.5.5 0 0 1 1 0L12.3 10l6.1 1.5a.5.5 0 0 1 0 1L12.3 14l-1.4 6.1a.5.5 0 0 1-1 0z"/><path d="M20 3v4M22 5h-4"/>',
+  target: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',
+  flame: '<path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.5 2.5z"/>',
+  pie: '<path d="M21.2 15.9A10 10 0 1 1 8 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',
+  alarm: '<circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 2"/><path d="M5 3 2 6M22 6l-3-3"/>',
+  plug: '<path d="M12 22v-5M9 8V2M15 8V2M6 8h12v3a6 6 0 0 1-12 0z"/>',
+  refresh: '<path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/>',
+  sliders: '<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M5 5l1.4 1.4M17.6 17.6 19 19M2 12h2M20 12h2M5 19l1.4-1.4M17.6 6.4 19 5"/>',
+  moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z"/>',
+  keyboard: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M8 16h8"/>',
+  bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/>',
+  download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
+  phone: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>',
+  paperclip: '<path d="M21.4 11 12.2 20.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.9-2.9l8.5-8.5"/>',
+  mic: '<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 19v3"/>',
+  send: '<path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/>',
+  "arrow-down": '<path d="M12 5v14M5 12l7 7 7-7"/>',
+  "chevron-left": '<path d="m15 18-6-6 6-6"/>',
+  "chevron-right": '<path d="m9 18 6-6-6-6"/>',
+  close: '<path d="M18 6 6 18M6 6l12 12"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  trash: '<path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>',
+  copy: '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+  tag: '<path d="M12.6 2.6 21 11a2 2 0 0 1 0 2.8l-7.2 7.2a2 2 0 0 1-2.8 0L2.6 12.6A2 2 0 0 1 2 11.2V4a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+};
+const iconSVG = (name) => ICONS[name]
+  ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`
+  : "";
+const paintIcons = (root = document) =>
+  root.querySelectorAll("[data-icon]").forEach((el) => {
+    if (!el.dataset.painted) { el.innerHTML = iconSVG(el.dataset.icon); el.dataset.painted = "1"; }
+  });
+
 function fmtDate(iso) {
   if (!iso) return "-";
   const d = new Date(iso);
@@ -398,7 +440,7 @@ const ctxMenu = $("#ctx-menu");
 function showCtxMenu(x, y, items) {
   ctxMenu.innerHTML = items.map((it, i) => it === "---" ? `<div class="ctx-sep"></div>`
     : (it.label && !it.action) ? `<div class="ctx-label">${esc(it.label)}</div>`
-    : `<button class="ctx-item ${it.danger ? "danger" : ""}" data-i="${i}">${it.icon || ""} ${esc(it.label)}</button>`).join("");
+    : `<button class="ctx-item ${it.danger ? "danger" : ""}" data-i="${i}"><span class="ic">${ICONS[it.icon] ? iconSVG(it.icon) : (it.icon || "")}</span> ${esc(it.label)}</button>`).join("");
   ctxMenu._items = items; ctxMenu.classList.add("show");
   const r = ctxMenu.getBoundingClientRect();
   ctxMenu.style.left = Math.min(x, innerWidth - r.width - 10) + "px";
@@ -414,10 +456,10 @@ $("#task-grid").addEventListener("contextmenu", (e) => {
   const id = +card.dataset.id;
   showCtxMenu(e.clientX, e.clientY, [
     { label: card.dataset.title },
-    { label: "เสร็จแล้ว", icon: "✓", action: () => taskDone(id) },
-    { label: "คัดลอกแผนอ่าน", icon: "📋", action: () => copyTaskPlan(card) },
+    { label: "เสร็จแล้ว", icon: "check", action: () => taskDone(id) },
+    { label: "คัดลอกแผนอ่าน", icon: "copy", action: () => copyTaskPlan(card) },
     "---",
-    { label: "ลบงานนี้ (รวม reminder)", icon: "🗑", danger: true, action: () => deleteTask(id) },
+    { label: "ลบงานนี้ (รวม reminder)", icon: "trash", danger: true, action: () => deleteTask(id) },
   ]);
 });
 $("#expense-table").addEventListener("contextmenu", (e) => {
@@ -425,10 +467,10 @@ $("#expense-table").addEventListener("contextmenu", (e) => {
   const id = +row.dataset.id;
   showCtxMenu(e.clientX, e.clientY, [
     { label: `${row.dataset.desc} · ${fmtMoney(row.dataset.amount)}฿` },
-    { label: "คัดลอกรายการ", icon: "📋", action: () => { navigator.clipboard.writeText(`${row.dataset.desc} ${row.dataset.amount} บาท`); toast("คัดลอกแล้ว", true); } },
-    { label: "เปลี่ยนหมวด…", icon: "🏷", action: () => showCtxMenu(e.clientX, e.clientY, [{ label: "เลือกหมวดใหม่" }, ...CATEGORIES.map((c) => ({ label: c, action: () => changeCategory(id, c) }))]) },
+    { label: "คัดลอกรายการ", icon: "copy", action: () => { navigator.clipboard.writeText(`${row.dataset.desc} ${row.dataset.amount} บาท`); toast("คัดลอกแล้ว", true); } },
+    { label: "เปลี่ยนหมวด…", icon: "tag", action: () => showCtxMenu(e.clientX, e.clientY, [{ label: "เลือกหมวดใหม่" }, ...CATEGORIES.map((c) => ({ label: c, action: () => changeCategory(id, c) }))]) },
     "---",
-    { label: "ลบรายการนี้", icon: "🗑", danger: true, action: () => deleteExpense(id) },
+    { label: "ลบรายการนี้", icon: "trash", danger: true, action: () => deleteExpense(id) },
   ]);
 });
 
@@ -489,10 +531,12 @@ micBtn.addEventListener("click", toggleMic);
 function applyTheme(t) {
   document.documentElement.dataset.theme = t;
   localStorage.setItem("theme", t);
-  const label = t === "dark" ? "☀️ โหมดสว่าง" : "🌙 โหมดมืด";
-  $("#theme-btn").textContent = label;
-  $("#theme-btn-m").textContent = t === "dark" ? "☀️" : "🌙";
+  const next = t === "dark" ? "sun" : "moon";
+  const label = t === "dark" ? "โหมดสว่าง" : "โหมดมืด";
+  $("#theme-btn").innerHTML = `<span class="ic">${iconSVG(next)}</span> ${label}`;
+  $("#theme-btn-m").innerHTML = `<span class="ic">${iconSVG(next)}</span>`;
 }
+paintIcons();
 applyTheme(localStorage.getItem("theme") || "light");
 const flipTheme = () => applyTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark");
 $("#theme-btn").addEventListener("click", flipTheme);

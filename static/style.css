@@ -479,3 +479,68 @@ kbd { display: inline-block; min-width: 22px; text-align: center; font-family: v
 @media (min-width: 721px) {
   .topbar { display: none; }
 }
+
+/* ═══════════ Icons (SVG) ═══════════ */
+.ic { display: inline-flex; align-items: center; justify-content: center; flex: none; line-height: 0; }
+.ic svg { width: 18px; height: 18px; display: block; }
+.logo-mark { color: #fff; }
+.logo-mark svg { width: 21px; height: 21px; }
+.nav-icon { width: 22px; height: 22px; display: inline-flex; align-items: center; justify-content: center; }
+.nav-icon svg { width: 21px; height: 21px; }
+.head-title { display: inline-flex; align-items: center; gap: 8px; }
+.head-title .ic svg { width: 16px; height: 16px; }
+.card-insight .head-title .ic { color: var(--brain); }
+.card-budget .head-title .ic { color: var(--expense); }
+.card-streak .head-title .ic { color: var(--expense); }
+.card-donut .head-title .ic, .card-quick .head-title .ic { color: var(--expense); }
+.card-agenda .head-title .ic { color: var(--schedule); }
+.card-conn .head-title .ic { color: var(--brain); }
+.view-head h2 { display: flex; align-items: center; gap: 10px; }
+.view-head h2 .ic svg { width: 22px; height: 22px; }
+.view-head h2 .ic { color: var(--brain); }
+.mini-btn .ic svg, .icon-btn .ic svg, .icon-btn svg { width: 15px; height: 15px; }
+.icon-btn.sm .ic svg { width: 14px; height: 14px; }
+.composer-btn .ic svg, .composer-send .ic svg { width: 19px; height: 19px; }
+.scroll-bottom .ic svg { width: 14px; height: 14px; }
+.modal-head h3 { display: flex; align-items: center; gap: 9px; }
+.modal-head h3 .ic svg { width: 18px; height: 18px; }
+.modal-close .ic svg { width: 15px; height: 15px; }
+.month-nav .mini-btn .ic svg { width: 17px; height: 17px; }
+.ctx-item .ic { width: 16px; }
+.ctx-item .ic svg { width: 15px; height: 15px; }
+
+/* ═══════════ Tabular figures (data never jitters) ═══════════ */
+.stat-value, .card-amount, .streak-num, .rail-money-amount, .exp-amt, .exp-date,
+.month-label, .ring-info .big, .cat-bar-label b, .plan-when, .plan-min, .agenda-when,
+.msg-time, .cal-num { font-variant-numeric: tabular-nums; }
+
+/* ═══════════ Visible focus for keyboard users ═══════════ */
+:focus-visible {
+  outline: 2px solid var(--brain);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+button:focus:not(:focus-visible),
+a:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+.nav-item:focus:not(:focus-visible),
+.chip:focus:not(:focus-visible) { outline: none; }
+.composer:focus-within { outline: none; }
+
+/* ═══════════ Bigger touch targets on mobile ═══════════ */
+@media (max-width: 720px) {
+  .nav-item { min-height: 50px; }
+  .mini-btn { min-height: 40px; }
+  .composer-btn, .composer-send { width: 44px; height: 44px; }
+}
+
+/* ═══════════ Respect reduced-motion ═══════════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .hero-orb { animation: none; }
+}

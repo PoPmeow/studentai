@@ -12,17 +12,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=3">
+<link rel="stylesheet" href="/static/style.css?v=4">
 </head>
 <body>
 
 <!-- ════════ Mobile top bar ════════ -->
 <header class="topbar">
   <div class="logo logo-sm">
-    <div class="logo-mark">⚡</div>
+    <div class="logo-mark" data-icon="zap"></div>
     <div class="logo-name">Student&nbsp;AI</div>
   </div>
-  <button class="icon-btn" id="theme-btn-m" title="สลับธีม">🌙</button>
+  <button class="icon-btn" id="theme-btn-m" aria-label="สลับธีมสว่าง/มืด" title="สลับธีม"></button>
 </header>
 
 <div class="app">
@@ -30,24 +30,24 @@
   <!-- ════════ Sidebar / bottom-nav ════════ -->
   <aside class="sidebar">
     <div class="logo">
-      <div class="logo-mark">⚡</div>
+      <div class="logo-mark" data-icon="zap"></div>
       <div>
         <div class="logo-name">Student&nbsp;AI</div>
         <div class="logo-sub" id="model-name">Gemini</div>
       </div>
     </div>
 
-    <nav class="nav">
-      <button class="nav-item active" data-view="home"><span class="nav-icon">🏠</span><span class="nav-label">หน้าหลัก</span></button>
-      <button class="nav-item" data-view="chat"><span class="nav-icon">💬</span><span class="nav-label">แชท</span></button>
-      <button class="nav-item" data-view="calendar"><span class="nav-icon">📅</span><span class="nav-label">ปฏิทิน</span></button>
-      <button class="nav-item" data-view="tasks"><span class="nav-icon">📚</span><span class="nav-label">งาน</span><span class="nav-badge" id="task-count"></span></button>
-      <button class="nav-item" data-view="expenses"><span class="nav-icon">💸</span><span class="nav-label">เงิน</span></button>
+    <nav class="nav" aria-label="เมนูหลัก">
+      <button class="nav-item active" data-view="home"><span class="nav-icon" data-icon="home"></span><span class="nav-label">หน้าหลัก</span></button>
+      <button class="nav-item" data-view="chat"><span class="nav-icon" data-icon="chat"></span><span class="nav-label">แชท</span></button>
+      <button class="nav-item" data-view="calendar"><span class="nav-icon" data-icon="calendar"></span><span class="nav-label">ปฏิทิน</span></button>
+      <button class="nav-item" data-view="tasks"><span class="nav-icon" data-icon="book"></span><span class="nav-label">งาน</span><span class="nav-badge" id="task-count"></span></button>
+      <button class="nav-item" data-view="expenses"><span class="nav-icon" data-icon="wallet"></span><span class="nav-label">เงิน</span></button>
     </nav>
 
     <div class="sidebar-footer">
-      <button class="mini-btn" id="theme-btn">🌙 โหมดมืด</button>
-      <button class="mini-btn" id="help-btn">⌨ คีย์ลัด</button>
+      <button class="mini-btn" id="theme-btn"><span class="ic" data-icon="moon"></span> โหมดมืด</button>
+      <button class="mini-btn" id="help-btn"><span class="ic" data-icon="keyboard"></span> คีย์ลัด</button>
     </div>
   </aside>
 
@@ -55,7 +55,7 @@
   <main class="main">
 
     <!-- ───── Dashboard ───── -->
-    <section class="view view-scroll active" id="view-home">
+    <section class="view view-scroll active" id="view-home" aria-label="หน้าหลัก">
       <div class="home-wrap">
         <header class="hero">
           <div>
@@ -69,42 +69,42 @@
           <!-- AI insight -->
           <div class="dash-card card-insight span-2" id="insight-card">
             <div class="dash-card-head">
-              <span>✨ สรุปโดย AI</span>
-              <button class="icon-btn sm" id="insight-refresh" title="รีเฟรช">🔄</button>
+              <span class="head-title"><span class="ic" data-icon="sparkles"></span> สรุปโดย AI</span>
+              <button class="icon-btn sm" id="insight-refresh" aria-label="รีเฟรชสรุป" title="รีเฟรช"><span class="ic" data-icon="refresh"></span></button>
             </div>
             <div id="insight-body" class="insight-body"><div class="skeleton-line"></div><div class="skeleton-line short"></div></div>
           </div>
 
           <!-- Budget ring -->
           <div class="dash-card card-budget" id="budget-card">
-            <div class="dash-card-head"><span>🎯 งบเดือนนี้</span>
-              <button class="icon-btn sm" id="budget-edit" title="ตั้งงบ">⚙</button></div>
+            <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="target"></span> งบเดือนนี้</span>
+              <button class="icon-btn sm" id="budget-edit" aria-label="ตั้งงบประมาณ" title="ตั้งงบ"><span class="ic" data-icon="sliders"></span></button></div>
             <div id="budget-body"></div>
           </div>
 
           <!-- Streak -->
           <div class="dash-card card-streak" id="streak-card">
-            <div class="dash-card-head"><span>🔥 Streak</span></div>
+            <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="flame"></span> Streak</span></div>
             <div id="streak-body"></div>
           </div>
 
           <!-- Spending donut -->
           <div class="dash-card card-donut" id="donut-card">
-            <div class="dash-card-head"><span>💸 รายจ่ายแยกหมวด</span></div>
+            <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="pie"></span> รายจ่ายแยกหมวด</span></div>
             <div id="donut-body" class="donut-body"></div>
           </div>
 
           <!-- Upcoming agenda -->
           <div class="dash-card card-agenda" id="agenda-card">
-            <div class="dash-card-head"><span>📌 ใกล้ถึงกำหนด</span></div>
+            <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="alarm"></span> ใกล้ถึงกำหนด</span></div>
             <div id="agenda-body" class="agenda-body"></div>
           </div>
 
           <!-- Quick ask -->
           <div class="dash-card card-quick span-2">
-            <div class="dash-card-head"><span>⚡ ถามเร็ว</span></div>
+            <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="zap"></span> ถามเร็ว</span></div>
             <form class="quick-form" id="quick-form">
-              <input type="text" id="quick-input" placeholder='เช่น "จ่ายข้าว 60" หรือ "ศุกร์นี้ส่งรายงาน"' autocomplete="off">
+              <input type="text" id="quick-input" aria-label="พิมพ์คำสั่งเร็ว" placeholder='เช่น "จ่ายข้าว 60" หรือ "ศุกร์นี้ส่งรายงาน"' autocomplete="off">
               <button type="submit" class="btn-primary">ส่ง</button>
             </form>
             <div class="quick-chips">
@@ -116,7 +116,7 @@
 
           <!-- Connections & settings -->
           <div class="dash-card card-conn span-2">
-            <div class="dash-card-head"><span>🔌 การเชื่อมต่อ &amp; ตั้งค่า</span></div>
+            <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="plug"></span> การเชื่อมต่อ &amp; ตั้งค่า</span></div>
             <div class="conn-row">
               <span class="conn" id="conn-api"><span class="dot"></span> Gemini</span>
               <span class="conn" id="conn-sheets"><span class="dot"></span> Sheets</span>
@@ -124,9 +124,9 @@
               <span class="conn" id="conn-line"><span class="dot"></span> LINE</span>
             </div>
             <div class="conn-actions">
-              <button class="mini-btn" id="test-notify-btn">🔔 ทดสอบแจ้งเตือน</button>
-              <a class="mini-btn" href="/api/export/expenses.csv" download>⬇ Export CSV</a>
-              <button class="mini-btn" id="install-btn" hidden>📲 ติดตั้งแอป</button>
+              <button class="mini-btn" id="test-notify-btn"><span class="ic" data-icon="bell"></span> ทดสอบแจ้งเตือน</button>
+              <a class="mini-btn" href="/api/export/expenses.csv" download><span class="ic" data-icon="download"></span> Export CSV</a>
+              <button class="mini-btn" id="install-btn" hidden><span class="ic" data-icon="phone"></span> ติดตั้งแอป</button>
             </div>
           </div>
         </div>
@@ -134,7 +134,7 @@
     </section>
 
     <!-- ───── Chat ───── -->
-    <section class="view view-chat" id="view-chat">
+    <section class="view view-chat" id="view-chat" aria-label="แชท">
       <div class="chat-scroll" id="chat-scroll">
         <div class="chat-hero" id="chat-hero">
           <div class="hero-orb"></div>
@@ -148,30 +148,28 @@
         </div>
       </div>
 
-      <button class="scroll-bottom" id="scroll-bottom" title="ลงล่างสุด">⬇ ข้อความใหม่</button>
+      <button class="scroll-bottom" id="scroll-bottom" title="ลงล่างสุด"><span class="ic" data-icon="arrow-down"></span> ข้อความใหม่</button>
 
       <div class="composer-wrap">
-        <div class="dropzone" id="dropzone">วางรูปสลิปตรงนี้ 🧾</div>
+        <div class="dropzone" id="dropzone"><span class="ic" data-icon="paperclip"></span> วางรูปสลิปตรงนี้</div>
         <form class="composer" id="composer">
-          <button type="button" class="composer-btn" id="slip-btn" title="แนบสลิป">🧾</button>
+          <button type="button" class="composer-btn" id="slip-btn" aria-label="แนบรูปสลิป" title="แนบสลิป"><span class="ic" data-icon="paperclip"></span></button>
           <input type="file" id="slip-input" accept="image/*" hidden>
-          <input type="text" id="message-input" placeholder='พิมพ์เลย หรือกดไมค์ 🎤' autocomplete="off">
-          <button type="button" class="composer-btn mic" id="mic-btn" title="พูด">🎤</button>
-          <button type="submit" class="composer-send" id="send-btn">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>
-          </button>
+          <input type="text" id="message-input" aria-label="พิมพ์ข้อความ" placeholder="พิมพ์เลย หรือกดไมค์พูด" autocomplete="off">
+          <button type="button" class="composer-btn mic" id="mic-btn" aria-label="พูดแทนพิมพ์" title="พูด"><span class="ic" data-icon="mic"></span></button>
+          <button type="submit" class="composer-send" id="send-btn" aria-label="ส่ง"><span class="ic" data-icon="send"></span></button>
         </form>
       </div>
     </section>
 
     <!-- ───── Calendar ───── -->
-    <section class="view view-scroll" id="view-calendar">
+    <section class="view view-scroll" id="view-calendar" aria-label="ปฏิทิน">
       <header class="view-head view-head-row">
-        <div><h2>📅 ปฏิทิน</h2><p>deadline · แผนอ่าน · นัดหมาย รวมในที่เดียว</p></div>
+        <div><h2><span class="ic" data-icon="calendar"></span> ปฏิทิน</h2><p>deadline · แผนอ่าน · นัดหมาย รวมในที่เดียว</p></div>
         <div class="month-nav">
-          <button class="mini-btn" id="cal-prev">‹</button>
+          <button class="mini-btn" id="cal-prev" aria-label="เดือนก่อนหน้า"><span class="ic" data-icon="chevron-left"></span></button>
           <span class="month-label" id="cal-label"></span>
-          <button class="mini-btn" id="cal-next">›</button>
+          <button class="mini-btn" id="cal-next" aria-label="เดือนถัดไป"><span class="ic" data-icon="chevron-right"></span></button>
         </div>
       </header>
       <div class="cal-wrap">
@@ -181,22 +179,22 @@
     </section>
 
     <!-- ───── Tasks ───── -->
-    <section class="view view-scroll" id="view-tasks">
-      <header class="view-head"><h2>📚 งาน &amp; แผนอ่านหนังสือ</h2><p>deadline ทั้งหมดพร้อมแผนที่ AI จัดให้</p></header>
+    <section class="view view-scroll" id="view-tasks" aria-label="งานและแผนอ่าน">
+      <header class="view-head"><h2><span class="ic" data-icon="book"></span> งาน &amp; แผนอ่านหนังสือ</h2><p>deadline ทั้งหมดพร้อมแผนที่ AI จัดให้</p></header>
       <div class="task-grid" id="task-grid"></div>
     </section>
 
     <!-- ───── Expenses ───── -->
-    <section class="view view-scroll" id="view-expenses">
+    <section class="view view-scroll" id="view-expenses" aria-label="รายจ่าย">
       <header class="view-head view-head-row">
-        <div><h2>💸 รายจ่าย</h2><p id="expense-month-label"></p></div>
+        <div><h2><span class="ic" data-icon="wallet"></span> รายจ่าย</h2><p id="expense-month-label"></p></div>
         <div class="head-actions">
           <div class="month-nav">
-            <button class="mini-btn" id="month-prev">‹</button>
+            <button class="mini-btn" id="month-prev" aria-label="เดือนก่อนหน้า"><span class="ic" data-icon="chevron-left"></span></button>
             <span class="month-label" id="month-label"></span>
-            <button class="mini-btn" id="month-next">›</button>
+            <button class="mini-btn" id="month-next" aria-label="เดือนถัดไป"><span class="ic" data-icon="chevron-right"></span></button>
           </div>
-          <a class="mini-btn" href="/api/export/expenses.csv" download>⬇ CSV</a>
+          <a class="mini-btn" href="/api/export/expenses.csv" download><span class="ic" data-icon="download"></span> CSV</a>
         </div>
       </header>
       <div class="expense-layout">
@@ -218,16 +216,16 @@
 </div>
 
 <!-- toast -->
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- context menu -->
 <div class="ctx-menu" id="ctx-menu"></div>
 
 <!-- budget modal -->
 <div class="modal-backdrop" id="budget-modal">
-  <div class="modal">
-    <div class="modal-head"><h3>🎯 ตั้งงบประมาณ</h3><button class="modal-close" data-close>✕</button></div>
-    <label class="field"><span>งบรวมต่อเดือน (บาท)</span><input type="number" id="bud-monthly" min="0" placeholder="เช่น 8000"></label>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="ตั้งงบประมาณ">
+    <div class="modal-head"><h3><span class="ic" data-icon="target"></span> ตั้งงบประมาณ</h3><button class="modal-close" data-close aria-label="ปิด"><span class="ic" data-icon="close"></span></button></div>
+    <label class="field"><span>งบรวมต่อเดือน (บาท)</span><input type="number" inputmode="numeric" id="bud-monthly" min="0" placeholder="เช่น 8000"></label>
     <div class="field-grid" id="bud-cats"></div>
     <div class="modal-foot-row"><button class="btn-primary" id="bud-save">บันทึกงบ</button></div>
   </div>
@@ -235,8 +233,8 @@
 
 <!-- help modal -->
 <div class="modal-backdrop" id="help-modal">
-  <div class="modal">
-    <div class="modal-head"><h3>⌨ คีย์ลัด</h3><button class="modal-close" data-close>✕</button></div>
+  <div class="modal" role="dialog" aria-modal="true" aria-label="คีย์ลัด">
+    <div class="modal-head"><h3><span class="ic" data-icon="keyboard"></span> คีย์ลัด</h3><button class="modal-close" data-close aria-label="ปิด"><span class="ic" data-icon="close"></span></button></div>
     <div class="shortcut-grid">
       <div class="shortcut"><span>สลับหน้า หลัก/แชท/ปฏิทิน/งาน/เงิน</span><span><kbd>Ctrl</kbd><kbd>1..5</kbd></span></div>
       <div class="shortcut"><span>โฟกัสช่องพิมพ์ (ไปแชท)</span><span><kbd>/</kbd> · <kbd>Ctrl</kbd><kbd>K</kbd></span></div>
@@ -246,10 +244,10 @@
       <div class="shortcut"><span>เลื่อนเดือน (ปฏิทิน/เงิน)</span><span><kbd>[</kbd> / <kbd>]</kbd></span></div>
       <div class="shortcut"><span>เปิดหน้านี้ / ปิด</span><span><kbd>?</kbd> / <kbd>Esc</kbd></span></div>
     </div>
-    <div class="modal-foot">💡 คลิกขวาที่การ์ดงานหรือรายการรายจ่าย เพื่อจัดการเพิ่มเติม</div>
+    <div class="modal-foot">คลิกขวาที่การ์ดงานหรือรายการรายจ่าย เพื่อจัดการเพิ่มเติม</div>
   </div>
 </div>
 
-<script src="/static/app.js?v=3"></script>
+<script src="/static/app.js?v=4"></script>
 </body>
 </html>
