@@ -8,16 +8,17 @@ import requests
 from .. import config
 
 
-def send_discord(message: str) -> bool:
-    if not config.DISCORD_WEBHOOK_URL:
+def send_discord_to(webhook_url: str, message: str) -> bool:
+    """Send to a specific Discord webhook (used for per-user channels)."""
+    if not webhook_url:
         return False
-    resp = requests.post(
-        config.DISCORD_WEBHOOK_URL,
-        json={"content": message},
-        timeout=10,
-    )
+    resp = requests.post(webhook_url, json={"content": message}, timeout=10)
     resp.raise_for_status()
     return True
+
+
+def send_discord(message: str) -> bool:
+    return send_discord_to(config.DISCORD_WEBHOOK_URL, message)
 
 
 def send_line(message: str) -> bool:

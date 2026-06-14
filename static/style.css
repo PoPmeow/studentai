@@ -594,3 +594,13 @@ input:focus:not(:focus-visible),
 .logout-btn { margin-left: auto; }
 .logout-btn .ic { color: var(--danger); }
 .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+/* notification settings (per-user channels) */
+.notify-settings { margin-bottom: 14px; padding: 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel-2); }
+.ns-label { font-size: 12px; color: var(--muted); margin-bottom: 9px; }
+.ns-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+.ns-row:last-child { margin-bottom: 0; }
+#discord-webhook { flex: 1; min-width: 0; border: 1px solid var(--line); border-radius: var(--r-sm); padding: 8px 11px; background: var(--panel); color: var(--text); font-family: var(--font-body); font-size: 12.5px; outline: 0; }
+#discord-webhook:focus { border-color: var(--brain); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brain) 14%, transparent); }
+#push-enable .ic, #test-notify-btn .ic { color: var(--brain); }
+.conn#conn-push.on .dot, .conn#conn-discord.on .dot { background: var(--brain); box-shadow: 0 0 7px color-mix(in srgb, var(--brain) 80%, transparent); }

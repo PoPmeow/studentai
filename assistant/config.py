@@ -42,6 +42,17 @@ CRON_SECRET = os.getenv("CRON_SECRET", "").strip()
 SESSION_SECRET = (
     os.getenv("SESSION_SECRET") or CRON_SECRET or "dev-insecure-secret-change-me"
 ).strip()
+
+# ===== Web Push (VAPID) =====
+# public key ไม่ลับ (ส่งให้ browser) ตั้ง default ได้; private key เป็นความลับ (env เท่านั้น)
+VAPID_PUBLIC_KEY = os.getenv(
+    "VAPID_PUBLIC_KEY",
+    "BMOPHbewUof-rPSql1T5aHzjwpTt0jOVI3k6U3dsCjHGMeT8p9Bki6U27Z-0rJT9IRhXpDq5HFgx3ZWEx99puTg",
+).strip()
+VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "").strip()
+VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:studentai@example.com").strip()
+WEBPUSH_ENABLED = bool(VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY)
+
 # Vercel ตั้ง env VERCEL=1 ให้อัตโนมัติ — ใช้รู้ว่ารันบน serverless (ห้ามตั้ง background loop)
 IS_SERVERLESS = bool(os.getenv("VERCEL"))
 

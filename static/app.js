@@ -157,8 +157,12 @@ function renderDashboard(d) {
   // sidebar/topbar
   $("#task-count").textContent = d.tasks.length || "";
   $("#model-name").textContent = d.channels.model;
-  const conns = { api: d.channels.api_key, sheets: d.channels.sheets, discord: d.channels.discord, line: d.channels.line };
+  const conns = { api: d.channels.api_key, sheets: d.channels.sheets,
+                  discord: d.notify && d.notify.discord, push: d.notify && d.notify.push > 0 };
   for (const [k, on] of Object.entries(conns)) $(`#conn-${k}`)?.classList.toggle("on", !!on);
+  const dw = $("#discord-webhook");
+  if (dw) dw.placeholder = (d.notify && d.notify.discord)
+    ? "ตั้ง Discord ไว้แล้ว — วางลิงก์ใหม่เพื่อเปลี่ยน" : "วาง Discord webhook URL ของตัวเอง";
 
   // hero
   $("#hero-greet").textContent = greeting();
@@ -562,6 +566,36 @@ $$("[data-close]").forEach((b) => b.addEventListener("click", () => b.closest(".
 $$(".modal-backdrop").forEach((m) => m.addEventListener("click", (e) => { if (e.target === m) m.classList.remove("show"); }));
 $("#test-notify-btn").addEventListener("click", async () => {
   try { const d = await api("/api/notify/test", { method: "POST" }); toast(`ส่งทดสอบผ่าน ${d.sent_via.join(", ")} 🎉`, true); } catch (e) { toast(e.message); }
+});
+
+$("#discord-save").addEventListener("click", async () => {
+  const webhook = $("#discord-webhook").value.trim();
+  try {
+    const d = await api("/api/notify/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ webhook }) });
+    $("#discord-webhook").value = "";
+    renderDashboard(d.dashboard);
+    toast(webhook ? "บันทึก Discord แล้ว ✓" : "ลบ Discord webhook แล้ว", true);
+  } catch (e) { toast(e.message); }
+});
+
+const urlB64ToUint8 = (s) => {
+  const b64 = (s + "=".repeat((4 - s.length % 4) % 4)).replace(/-/g, "+").replace(/_/g, "/");
+  return Uint8Array.from([...atob(b64)].map((c) => c.charCodeAt(0)));
+};
+$("#push-enable").addEventListener("click", async () => {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window))
+    return toast("เบราว์เซอร์นี้ไม่รองรับการแจ้งเตือน");
+  try {
+    const { enabled, publicKey } = await api("/api/push/vapid");
+    if (!enabled) return toast("เซิร์ฟเวอร์ยังไม่ได้ตั้งค่า Web Push (VAPID)");
+    const perm = await Notification.requestPermission();
+    if (perm !== "granted") return toast("ยังไม่ได้อนุญาตการแจ้งเตือนในเบราว์เซอร์");
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlB64ToUint8(publicKey) });
+    const d = await api("/api/push/subscribe", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(sub.toJSON()) });
+    renderDashboard(d.dashboard);
+    toast("เปิดแจ้งเตือนบนเครื่องนี้แล้ว 🔔", true);
+  } catch (e) { toast("เปิดแจ้งเตือนไม่สำเร็จ: " + e.message); }
 });
 
 // slip upload + drag/drop + paste

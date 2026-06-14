@@ -17,7 +17,7 @@ from pydantic import BaseModel
 from assistant import auth, config
 from assistant.brain import Brain
 from assistant.modules import budget, expense, insight, schedule, streak
-from assistant.notify import senders
+from assistant.notify import user_notify
 
 # brain ต้องมี API key — บน Vercel ตอน build อาจยังไม่มี ทำให้ import ล้ม จึงสร้างแบบ lazy
 _brain = None
@@ -90,6 +90,20 @@ class LoginIn(BaseModel):
     pin: str
 
 
+class DiscordIn(BaseModel):
+    webhook: str = ""
+
+
+class PushSubIn(BaseModel):
+    endpoint: str
+    keys: dict = {}
+    expirationTime: float | None = None
+
+
+class EndpointIn(BaseModel):
+    endpoint: str
+
+
 async def require_user(sid: str = Cookie(default="")) -> str:
     """ตรวจ session cookie แล้วตั้ง current_user ของ request (async เพื่อให้
     contextvar ส่งต่อไปยัง sync endpoint ที่รันใน threadpool ได้)"""
@@ -152,10 +166,9 @@ def dashboard_data() -> dict:
         "pending_reminders": schedule.pending_reminders()[:5],
         "budget": budget.status(),
         "streak": streak.status(),
+        "notify": user_notify.status(),
         "channels": {
             "sheets": bool(config.GOOGLE_SHEETS_CREDENTIALS_FILE),
-            "discord": bool(config.DISCORD_WEBHOOK_URL),
-            "line": bool(config.LINE_CHANNEL_ACCESS_TOKEN and config.LINE_USER_ID),
             "api_key": bool(config.GEMINI_API_KEY),
             "model": config.MODEL,
         },
@@ -272,13 +285,52 @@ def export_expenses(user: str = Depends(require_user)):
     )
 
 
+@app.get("/api/notify/settings")
+def notify_settings_get(user: str = Depends(require_user)):
+    s = user_notify.get_settings()
+    return {
+        "discord_set": bool(s.get("discord_webhook")),
+        "push": len(s.get("push_subscriptions", [])),
+        "webpush_enabled": config.WEBPUSH_ENABLED,
+    }
+
+
+@app.post("/api/notify/settings")
+def notify_settings_set(body: DiscordIn, user: str = Depends(require_user)):
+    url = body.webhook.strip()
+    if url and "discord.com/api/webhooks/" not in url and "discordapp.com/api/webhooks/" not in url:
+        raise HTTPException(400, "ลิงก์ไม่ถูกต้อง — ต้องเป็น Discord webhook (https://discord.com/api/webhooks/...)")
+    user_notify.set_discord(url)
+    return {"ok": True, "dashboard": dashboard_data()}
+
+
 @app.post("/api/notify/test")
 def notify_test(user: str = Depends(require_user)):
-    sent = senders.broadcast("🔔 ทดสอบแจ้งเตือนจาก Student AI — ใช้งานได้แล้ว!")
+    sent = user_notify.send("ทดสอบแจ้งเตือนจาก Student AI — ใช้งานได้แล้ว ✅", title="🔔 ทดสอบ")
     if not sent:
         raise HTTPException(
-            500, "ส่งไม่สำเร็จ — ยังไม่ได้ตั้งค่า Discord/LINE ใน .env หรือค่าไม่ถูกต้อง")
+            400, "ยังไม่ได้ตั้งช่องแจ้งเตือน — ใส่ Discord webhook หรือกดเปิดแจ้งเตือนบนเครื่องก่อน")
     return {"ok": True, "sent_via": sent}
+
+
+# ───────── web push ─────────
+
+@app.get("/api/push/vapid")
+def push_vapid():
+    return {"enabled": config.WEBPUSH_ENABLED,
+            "publicKey": config.VAPID_PUBLIC_KEY if config.WEBPUSH_ENABLED else ""}
+
+
+@app.post("/api/push/subscribe")
+def push_subscribe(body: PushSubIn, user: str = Depends(require_user)):
+    user_notify.add_subscription(body.model_dump(exclude_none=True))
+    return {"ok": True, "dashboard": dashboard_data()}
+
+
+@app.post("/api/push/unsubscribe")
+def push_unsubscribe(body: EndpointIn, user: str = Depends(require_user)):
+    user_notify.remove_subscription(body.endpoint)
+    return {"ok": True, "dashboard": dashboard_data()}
 
 
 # ───────── budget ─────────

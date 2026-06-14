@@ -1,5 +1,5 @@
-/* Student AI service worker — installable PWA + offline shell */
-const CACHE = "studentai-v5";
+/* Student AI service worker — installable PWA + offline shell + web push */
+const CACHE = "studentai-v6";
 const SHELL = ["/", "/static/style.css", "/static/app.js", "/static/icon.svg"];
 
 self.addEventListener("install", (e) => {
@@ -11,6 +11,30 @@ self.addEventListener("activate", (e) => {
     caches.keys().then((keys) =>
       Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
     ).then(() => self.clients.claim())
+  );
+});
+
+/* ── Web push ── */
+self.addEventListener("push", (e) => {
+  let data = {};
+  try { data = e.data ? e.data.json() : {}; } catch {}
+  e.waitUntil(self.registration.showNotification(data.title || "Student AI", {
+    body: data.body || "",
+    icon: "/static/icon.svg",
+    badge: "/static/icon.svg",
+    tag: "studentai-reminder",
+    data: { url: data.url || "/" },
+  }));
+});
+
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  const url = (e.notification.data && e.notification.data.url) || "/";
+  e.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
+      for (const c of list) { if ("focus" in c) return c.focus(); }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
   );
 });
 

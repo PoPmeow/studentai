@@ -2,7 +2,7 @@
 from datetime import datetime, timedelta
 
 from .. import config
-from ..notify import senders
+from ..notify import user_notify
 from ..storage import json_store
 
 # แจ้งเตือนล่วงหน้าก่อนถึงกำหนด (มาก่อนเสมอ ไม่เตือนหลังหมดเวลา)
@@ -84,16 +84,21 @@ def fire_due_reminders() -> list[dict]:
     """Send every unsent reminder whose time has passed. Returns those sent."""
     now = config.now().isoformat(timespec="minutes")
     reminders = json_store.reminders.load()
+    due = [r for r in reminders if not r.get("sent") and (r.get("at") or "9999") <= now]
+    if not due:
+        return []
+
+    has_channels = any(user_notify.status().values())
     fired = []
-    for r in reminders:
-        if not r.get("sent") and (r.get("at") or "9999") <= now:
-            channels = senders.broadcast(f"🔔 {r['message']}")
-            if channels:
-                r["sent"] = True
-                r["sent_via"] = channels
-                fired.append(r)
-    if fired:
-        json_store.reminders.save(reminders)
+    for r in due:
+        channels = user_notify.send(r["message"], title="🔔 เตือนความจำ")
+        # มีช่อง + ส่งได้ → done; ไม่มีช่องเลย → mark done กันยิงซ้ำไม่จบ;
+        # มีช่องแต่ส่งพลาด (ชั่วคราว) → ปล่อยไว้ให้ cron รอบหน้าลองใหม่
+        if channels or not has_channels:
+            r["sent"] = True
+            r["sent_via"] = channels
+            fired.append(r)
+    json_store.reminders.save(reminders)
     return fired
 
 
