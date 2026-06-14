@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=5">
+<link rel="stylesheet" href="/static/style.css?v=6">
 </head>
 <body>
 
@@ -252,20 +252,25 @@
 
 <!-- login overlay -->
 <div class="auth-overlay show" id="auth-overlay">
-  <form class="auth-card" id="auth-form">
+  <form class="auth-card" id="auth-form" data-mode="login">
     <div class="auth-logo"><div class="logo-mark" data-icon="zap"></div><div class="logo-name">Student&nbsp;AI</div></div>
-    <h2>เข้าสู่ระบบ</h2>
-    <p class="auth-sub">พิมพ์ชื่อผู้ใช้กับ PIN — <b>ครั้งแรกตั้ง PIN ได้เลย</b></p>
+    <div class="auth-tabs">
+      <button type="button" class="auth-tab active" data-mode="login">เข้าสู่ระบบ</button>
+      <button type="button" class="auth-tab" data-mode="register">สมัครสมาชิก</button>
+    </div>
+    <p class="auth-sub" id="auth-sub">ยินดีต้อนรับกลับ — ใส่ชื่อผู้ใช้กับ PIN</p>
     <label class="auth-field"><span>ชื่อผู้ใช้</span>
       <input id="auth-username" autocomplete="username" placeholder="เช่น mind" maxlength="20" autocapitalize="none" required></label>
     <label class="auth-field"><span>PIN (ตัวเลข 4-6 หลัก)</span>
       <input id="auth-pin" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="current-password" placeholder="••••" maxlength="6" required></label>
+    <label class="auth-field auth-confirm"><span>ยืนยัน PIN อีกครั้ง</span>
+      <input id="auth-pin2" type="password" inputmode="numeric" pattern="[0-9]*" autocomplete="new-password" placeholder="••••" maxlength="6"></label>
     <div class="auth-error" id="auth-error" role="alert"></div>
-    <button class="btn-primary auth-submit" type="submit">เข้าสู่ระบบ</button>
-    <div class="auth-note">ข้อมูลของแต่ละคนแยกกัน · เพื่อนเข้าใช้ด้วยชื่อ + PIN ของตัวเองได้เลย</div>
+    <button class="btn-primary auth-submit" id="auth-submit" type="submit">เข้าสู่ระบบ</button>
+    <div class="auth-note">ข้อมูลของแต่ละคนแยกกัน · เพื่อนสมัครบัญชีของตัวเองแล้วใช้แยกกันได้เลย</div>
   </form>
 </div>
 
-<script src="/static/app.js?v=5"></script>
+<script src="/static/app.js?v=6"></script>
 </body>
 </html>

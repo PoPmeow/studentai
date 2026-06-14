@@ -617,18 +617,40 @@ function onAuthed(username) {
   api("/api/dashboard").then((d) => { renderDashboard(d); loadInsight(); }).catch((e) => toast(e.message));
 }
 
-$("#auth-form").addEventListener("submit", async (e) => {
+const authForm = $("#auth-form");
+function setAuthMode(mode) {
+  authForm.dataset.mode = mode;
+  $$(".auth-tab").forEach((t) => t.classList.toggle("active", t.dataset.mode === mode));
+  $("#auth-sub").textContent = mode === "register"
+    ? "ตั้งชื่อผู้ใช้กับ PIN ของคุณเอง (จำไว้ใช้เข้าครั้งหน้า)"
+    : "ยินดีต้อนรับกลับ — ใส่ชื่อผู้ใช้กับ PIN";
+  $("#auth-submit").textContent = mode === "register" ? "สมัครสมาชิก" : "เข้าสู่ระบบ";
+  $("#auth-pin2").required = mode === "register";
+  $("#auth-error").textContent = "";
+}
+$$(".auth-tab").forEach((t) => t.addEventListener("click", () => setAuthMode(t.dataset.mode)));
+
+authForm.addEventListener("submit", async (e) => {
   e.preventDefault();
+  const mode = authForm.dataset.mode;
   const username = $("#auth-username").value.trim();
   const pin = $("#auth-pin").value.trim();
+  const pin2 = $("#auth-pin2").value.trim();
   $("#auth-error").textContent = "";
-  const btn = $(".auth-submit"); btn.disabled = true;
+  if (mode === "register" && pin !== pin2) {
+    $("#auth-error").textContent = "PIN ยืนยันไม่ตรงกัน"; return;
+  }
+  const btn = $("#auth-submit"); btn.disabled = true;
   try {
-    const r = await api("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, pin }) });
-    $("#auth-pin").value = "";
+    const r = await api(mode === "register" ? "/api/register" : "/api/login",
+      { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username, pin }) });
+    $("#auth-pin").value = ""; $("#auth-pin2").value = "";
     onAuthed(r.username);
-  } catch (err) { $("#auth-error").textContent = err.message; }
-  finally { btn.disabled = false; }
+  } catch (err) {
+    $("#auth-error").textContent = err.message;
+    // ล็อกอินแล้วไม่พบบัญชี → สลับไปโหมดสมัครให้เลย (คงชื่อไว้)
+    if (mode === "login" && /ยังไม่มีบัญชี/.test(err.message)) setAuthMode("register");
+  } finally { btn.disabled = false; }
 });
 
 $("#logout-btn").addEventListener("click", async () => {

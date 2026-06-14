@@ -50,10 +50,12 @@ def list_users() -> list[str]:
     return list(_users().keys())
 
 
-def register_or_login(username: str, pin: str) -> tuple[str | None, str]:
-    """ครั้งแรก = สมัคร (ตั้ง PIN), ครั้งถัดไป = ต้องตรง PIN.
-    คืน (token, error). token=None เมื่อ error.
-    """
+def user_exists(username: str) -> bool:
+    return normalize_username(username) in _users()
+
+
+def register(username: str, pin: str) -> tuple[str | None, str]:
+    """สมัครบัญชีใหม่ — error ถ้ามีชื่อนี้แล้ว. คืน (token, error)."""
     username = normalize_username(username)
     if not valid_username(username):
         return None, "ชื่อผู้ใช้ต้องเป็น a-z, 0-9, _ . - ยาว 3-20 ตัว"
@@ -61,14 +63,24 @@ def register_or_login(username: str, pin: str) -> tuple[str | None, str]:
         return None, "PIN ต้องเป็นตัวเลข 4-6 หลัก"
 
     users = _users()
-    rec = users.get(username)
-    if rec is None:
-        salt = secrets.token_hex(16)
-        users[username] = {"pin": _hash_pin(pin, salt), "salt": salt,
-                           "created": time.strftime("%Y-%m-%d")}
-        backend.write_raw("users", users)
-        return make_token(username), ""
+    if username in users:
+        return None, "มีชื่อผู้ใช้นี้แล้ว — ลองชื่ออื่น หรือกดเข้าสู่ระบบ"
+    salt = secrets.token_hex(16)
+    users[username] = {"pin": _hash_pin(pin, salt), "salt": salt,
+                       "created": time.strftime("%Y-%m-%d")}
+    backend.write_raw("users", users)
+    return make_token(username), ""
 
+
+def login(username: str, pin: str) -> tuple[str | None, str]:
+    """เข้าสู่ระบบบัญชีที่มีอยู่. คืน (token, error)."""
+    username = normalize_username(username)
+    if not valid_username(username) or not valid_pin(pin):
+        return None, "ชื่อผู้ใช้หรือ PIN ไม่ถูกต้อง"
+
+    rec = _users().get(username)
+    if rec is None:
+        return None, "ยังไม่มีบัญชีนี้ — กดสมัครสมาชิกก่อนนะ"
     if not hmac.compare_digest(rec["pin"], _hash_pin(pin, rec["salt"])):
         return None, "PIN ไม่ถูกต้อง"
     return make_token(username), ""

@@ -100,15 +100,35 @@ async def require_user(sid: str = Cookie(default="")) -> str:
     return username
 
 
-@app.post("/api/login")
-def login(body: LoginIn, response: Response):
-    token, err = auth.register_or_login(body.username, body.pin)
-    if not token:
-        raise HTTPException(401, err)
+def _issue_session(response: Response, token: str):
     response.set_cookie(
         "sid", token, max_age=90 * 86400, httponly=True,
         samesite="lax", secure=config.IS_SERVERLESS, path="/",
     )
+
+
+@app.get("/api/check")
+def check_username(username: str = ""):
+    """ใช้ให้หน้า login รู้ว่าชื่อนี้มีแล้วหรือยัง (สลับโหมดเข้าระบบ/สมัคร)"""
+    u = auth.normalize_username(username)
+    return {"valid": auth.valid_username(u), "exists": auth.user_exists(u)}
+
+
+@app.post("/api/register")
+def register(body: LoginIn, response: Response):
+    token, err = auth.register(body.username, body.pin)
+    if not token:
+        raise HTTPException(400, err)
+    _issue_session(response, token)
+    return {"ok": True, "username": auth.normalize_username(body.username)}
+
+
+@app.post("/api/login")
+def login(body: LoginIn, response: Response):
+    token, err = auth.login(body.username, body.pin)
+    if not token:
+        raise HTTPException(401, err)
+    _issue_session(response, token)
     return {"ok": True, "username": auth.normalize_username(body.username)}
 
 
