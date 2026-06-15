@@ -104,6 +104,15 @@ class EndpointIn(BaseModel):
     endpoint: str
 
 
+class ChangePinIn(BaseModel):
+    old_pin: str
+    new_pin: str
+
+
+class DeleteAccountIn(BaseModel):
+    pin: str
+
+
 async def require_user(sid: str = Cookie(default="")) -> str:
     """ตรวจ session cookie แล้วตั้ง current_user ของ request (async เพื่อให้
     contextvar ส่งต่อไปยัง sync endpoint ที่รันใน threadpool ได้)"""
@@ -157,6 +166,24 @@ def me(user: str = Depends(require_user)):
     return {"username": user}
 
 
+@app.post("/api/account/pin")
+def account_change_pin(body: ChangePinIn, user: str = Depends(require_user)):
+    ok, err = auth.change_pin(user, body.old_pin, body.new_pin)
+    if not ok:
+        raise HTTPException(400, err)
+    return {"ok": True}
+
+
+@app.delete("/api/account")
+def account_delete(body: DeleteAccountIn, response: Response, user: str = Depends(require_user)):
+    token, _ = auth.login(user, body.pin)  # ยืนยันด้วย PIN ก่อนลบ
+    if not token:
+        raise HTTPException(400, "PIN ไม่ถูกต้อง — ยกเลิกการลบบัญชี")
+    auth.delete_user(user)
+    response.delete_cookie("sid", path="/")
+    return {"ok": True}
+
+
 def dashboard_data() -> dict:
     summary = expense.monthly_summary()
     summary.pop("items", None)
@@ -170,6 +197,7 @@ def dashboard_data() -> dict:
         "channels": {
             "sheets": bool(config.GOOGLE_SHEETS_CREDENTIALS_FILE),
             "api_key": bool(config.GEMINI_API_KEY),
+            "groq": bool(config.GROQ_API_KEY),
             "model": config.MODEL,
         },
     }

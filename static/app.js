@@ -156,7 +156,7 @@ function renderDashboard(d) {
 
   // sidebar/topbar
   $("#task-count").textContent = d.tasks.length || "";
-  $("#model-name").textContent = d.channels.model;
+  $("#model-name").textContent = d.channels.model + (d.channels.groq ? " + Groq" : "");
   const conns = { api: d.channels.api_key, sheets: d.channels.sheets,
                   discord: d.notify && d.notify.discord, push: d.notify && d.notify.push > 0 };
   for (const [k, on] of Object.entries(conns)) $(`#conn-${k}`)?.classList.toggle("on", !!on);
@@ -690,6 +690,31 @@ authForm.addEventListener("submit", async (e) => {
 $("#logout-btn").addEventListener("click", async () => {
   try { await fetch("/api/logout", { method: "POST" }); } catch {}
   location.reload();
+});
+
+$("#account-btn").addEventListener("click", () => {
+  ["#pin-old", "#pin-new", "#pin-new2", "#del-pin"].forEach((s) => { $(s).value = ""; });
+  $("#pin-error").textContent = ""; $("#del-error").textContent = "";
+  $("#account-modal").classList.add("show");
+});
+$("#pin-save").addEventListener("click", async () => {
+  const oldp = $("#pin-old").value.trim(), np = $("#pin-new").value.trim(), np2 = $("#pin-new2").value.trim();
+  $("#pin-error").textContent = "";
+  if (np !== np2) { $("#pin-error").textContent = "PIN ใหม่ยืนยันไม่ตรงกัน"; return; }
+  try {
+    await api("/api/account/pin", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ old_pin: oldp, new_pin: np }) });
+    $("#account-modal").classList.remove("show");
+    toast("เปลี่ยน PIN แล้ว ✓", true);
+  } catch (e) { $("#pin-error").textContent = e.message; }
+});
+$("#account-delete").addEventListener("click", async () => {
+  $("#del-error").textContent = "";
+  if (!confirm("ยืนยันลบบัญชีและข้อมูลทั้งหมดถาวร? กู้คืนไม่ได้")) return;
+  try {
+    await api("/api/account", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pin: $("#del-pin").value.trim() }) });
+    toast("ลบบัญชีแล้ว", true);
+    setTimeout(() => location.reload(), 700);
+  } catch (e) { $("#del-error").textContent = e.message; }
 });
 
 /* init — check session first, then load app or show login */

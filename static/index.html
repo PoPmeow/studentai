@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=7">
+<link rel="stylesheet" href="/static/style.css?v=8">
 </head>
 <body>
 
@@ -118,7 +118,10 @@
           <div class="dash-card card-conn span-2">
             <div class="dash-card-head"><span class="head-title"><span class="ic" data-icon="plug"></span> การเชื่อมต่อ &amp; ตั้งค่า</span></div>
             <div class="conn-account"><span class="ic" data-icon="user"></span> เข้าสู่ระบบเป็น <b id="current-user">—</b>
-              <button class="mini-btn logout-btn" id="logout-btn"><span class="ic" data-icon="logout"></span> ออกจากระบบ</button></div>
+              <span class="acct-btns">
+                <button class="mini-btn" id="account-btn"><span class="ic" data-icon="sliders"></span> จัดการบัญชี</button>
+                <button class="mini-btn logout-btn" id="logout-btn"><span class="ic" data-icon="logout"></span> ออกจากระบบ</button>
+              </span></div>
             <div class="conn-row">
               <span class="conn" id="conn-api"><span class="dot"></span> Gemini</span>
               <span class="conn" id="conn-sheets"><span class="dot"></span> Sheets</span>
@@ -281,6 +284,28 @@
   </form>
 </div>
 
-<script src="/static/app.js?v=7"></script>
+<!-- account modal -->
+<div class="modal-backdrop" id="account-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="จัดการบัญชี">
+    <div class="modal-head"><h3><span class="ic" data-icon="user"></span> จัดการบัญชี</h3><button class="modal-close" data-close aria-label="ปิด"><span class="ic" data-icon="close"></span></button></div>
+    <div class="acct-section">
+      <div class="acct-title">เปลี่ยน PIN</div>
+      <label class="field"><span>PIN เดิม</span><input type="password" inputmode="numeric" id="pin-old" maxlength="6" placeholder="••••"></label>
+      <label class="field"><span>PIN ใหม่ (4-6 หลัก)</span><input type="password" inputmode="numeric" id="pin-new" maxlength="6" placeholder="••••"></label>
+      <label class="field"><span>ยืนยัน PIN ใหม่</span><input type="password" inputmode="numeric" id="pin-new2" maxlength="6" placeholder="••••"></label>
+      <div class="acct-error" id="pin-error"></div>
+      <button class="btn-primary" id="pin-save">บันทึก PIN ใหม่</button>
+    </div>
+    <div class="acct-section danger-zone">
+      <div class="acct-title">ลบบัญชี</div>
+      <p class="acct-warn">ลบบัญชีและข้อมูลทั้งหมด (รายจ่าย/งาน/งบ/streak) อย่างถาวร กู้คืนไม่ได้</p>
+      <label class="field"><span>ยืนยันด้วย PIN ปัจจุบัน</span><input type="password" inputmode="numeric" id="del-pin" maxlength="6" placeholder="••••"></label>
+      <div class="acct-error" id="del-error"></div>
+      <button class="btn-danger" id="account-delete">ลบบัญชีถาวร</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=8"></script>
 </body>
 </html>

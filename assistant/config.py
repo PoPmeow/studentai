@@ -13,6 +13,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
 MODEL = os.getenv("MODEL", "gemini-2.5-flash").strip()
 
+# Groq = ตัวสำรองสำหรับแชท/แยก intent เมื่อ Gemini ติด limit (ฟรี โควต้าเยอะ เร็ว)
+# 70b ฉลาดกว่า (~1,000/วัน), 8b-instant โควต้าเยอะกว่ามาก (~14,400/วัน) แต่ฉลาดน้อยกว่า
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
+GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
+
 # ===== Notifications =====
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")

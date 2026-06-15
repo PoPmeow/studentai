@@ -86,6 +86,41 @@ def login(username: str, pin: str) -> tuple[str | None, str]:
     return make_token(username), ""
 
 
+def change_pin(username: str, old_pin: str, new_pin: str) -> tuple[bool, str]:
+    username = normalize_username(username)
+    if not valid_pin(new_pin):
+        return False, "PIN ใหม่ต้องเป็นตัวเลข 4-6 หลัก"
+    users = _users()
+    rec = users.get(username)
+    if rec is None:
+        return False, "ไม่พบบัญชี"
+    if not hmac.compare_digest(rec["pin"], _hash_pin(old_pin, rec["salt"])):
+        return False, "PIN เดิมไม่ถูกต้อง"
+    salt = secrets.token_hex(16)
+    rec["pin"], rec["salt"] = _hash_pin(new_pin, salt), salt
+    backend.write_raw("users", users)
+    return True, ""
+
+
+def delete_user(username: str) -> bool:
+    """ลบบัญชี + ล้างข้อมูลทุก collection ของผู้ใช้คนนี้"""
+    from .storage import json_store
+
+    username = normalize_username(username)
+    users = _users()
+    if username not in users:
+        return False
+    tok = current_user.set(username)
+    try:
+        for name in json_store.USER_COLLECTIONS:
+            backend.delete(name)
+    finally:
+        current_user.reset(tok)
+    users.pop(username, None)
+    backend.write_raw("users", users)
+    return True
+
+
 # ───────── token sign / verify ─────────
 
 def _b64(b: bytes) -> str:

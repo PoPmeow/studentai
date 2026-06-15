@@ -73,3 +73,8 @@ budgets = KvStore("budgets", {"monthly": 0, "categories": {}})
 streak = KvStore("streak", {"current": 0, "best": 0, "last_active": "", "history": []})
 insight_cache = KvStore("insight_cache", {})
 notify_settings = KvStore("notify", {"discord_webhook": "", "push_subscriptions": []})
+
+# ชื่อ collection ทั้งหมดของผู้ใช้หนึ่งคน (ใช้ตอนลบบัญชี = ล้างข้อมูลทุกอย่าง)
+USER_COLLECTIONS = [
+    "expenses", "tasks", "reminders", "budgets", "streak", "insight_cache", "notify",
+]

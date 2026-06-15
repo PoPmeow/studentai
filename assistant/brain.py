@@ -6,6 +6,8 @@ import re
 import time
 from datetime import datetime
 from pathlib import Path
+
+import requests
 from PIL import Image
 
 from google import genai
@@ -123,14 +125,42 @@ class Brain:
                 delay *= 2
         raise RuntimeError("unreachable")
 
+    def _generate_groq(self, system: str, user: str) -> str:
+        """Fallback brain — Groq (OpenAI-compatible, JSON mode). Text only."""
+        resp = requests.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={"Authorization": f"Bearer {config.GROQ_API_KEY}"},
+            json={
+                "model": config.GROQ_MODEL,
+                "messages": [
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                "response_format": {"type": "json_object"},
+                "temperature": 0.4,
+            },
+            timeout=20,
+        )
+        resp.raise_for_status()
+        return resp.json()["choices"][0]["message"]["content"]
+
     def process(self, text: str) -> dict:
-        """One call: detect intent, extract data, build plan, draft reply."""
+        """One call: detect intent, extract data, build plan, draft reply.
+        ถ้า Gemini ติด limit/ล่ม และตั้ง GROQ_API_KEY ไว้ → สลับไปใช้ Groq อัตโนมัติ
+        """
         now = config.now()
         user_msg = (
             f"Current date/time: {now.strftime('%Y-%m-%d %H:%M')} "
             f"({now.strftime('%A')})\n\nUser message: {text}"
         )
-        return self._extract_json(self._generate(user_msg))
+        try:
+            out = self._generate(user_msg)
+        except errors.APIError as e:
+            if config.GROQ_API_KEY and getattr(e, "code", None) in RETRYABLE_CODES:
+                out = self._generate_groq(SYSTEM_PROMPT, user_msg)
+            else:
+                raise
+        return self._extract_json(out)
 
     def parse_slip(self, image_path: str) -> dict:
         """Vision call: parse a payment slip/receipt image into an expense."""

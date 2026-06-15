@@ -63,6 +63,15 @@ class _JsonBackend:
     def write_raw(self, name, data):
         self._write(name, data)
 
+    def _delete(self, name):
+        try:
+            self._path(name).unlink(missing_ok=True)
+        except OSError:
+            pass
+
+    def delete(self, name):
+        self._delete(_ns(name))
+
 
 class _UpstashBackend:
     """Stores each collection as one JSON string under key studentai:<ns>."""
@@ -108,5 +117,9 @@ class _UpstashBackend:
     def write_raw(self, name, data):
         self._write(name, data)
 
+    def delete(self, name):
+        self._cmd("DEL", self.prefix + _ns(name))
+
 
 backend = _UpstashBackend() if config.USE_UPSTASH else _JsonBackend()
+
