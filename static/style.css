@@ -643,3 +643,6 @@ input:focus:not(:focus-visible),
 .sched-subj { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sched-room { font-size: 12px; color: var(--muted); background: var(--bg); padding: 1px 6px; border-radius: 4px; }
 .sched-err-msg { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--r-sm); padding: 12px 14px; font-size: 13.5px; line-height: 1.55; margin-bottom: 4px; }
+.sched-preview-hint { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+.sched-del-btn { flex-shrink: 0; border: 0; background: transparent; color: var(--muted); font-size: 13px; cursor: pointer; padding: 2px 6px; border-radius: 4px; line-height: 1; transition: background .12s, color .12s; min-width: 28px; min-height: 28px; }
+.sched-del-btn:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }

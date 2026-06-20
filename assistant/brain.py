@@ -79,20 +79,37 @@ If the amount is unreadable, set "amount": null.
 """
 
 SCHEDULE_IMAGE_PROMPT = """\
-This image is a Thai university class schedule table. Extract ALL class entries \
-and return ONLY a JSON object (no markdown fences):
+This is a Thai university class schedule image (ตารางเรียน / ตารางสอน).
+
+Thai day abbreviations used in schedules:
+จ / จันทร์ = Monday
+อ / อังคาร = Tuesday
+พ / พุธ = Wednesday
+พฤ / พฤหัสบดี = Thursday
+ศ / ศุกร์ = Friday
+ส / เสาร์ = Saturday
+อา / อาทิตย์ = Sunday
+
+Rules:
+- Extract ONLY slots that have BOTH a subject name AND a time range.
+- NEVER truncate or shorten the subject name — copy the full text exactly as shown.
+- Skip cells that contain only room codes, free periods (ว่าง), or administrative text.
+- If the same subject spans consecutive time blocks, merge them into one slot.
+- Times may appear as "09.00-11.00" or "9:00-11:00" — output as HH:MM 24-hour.
+
+Return ONLY a JSON object, no markdown:
 {
   "slots": [
     {
-      "subject": "<subject name, Thai or English as shown>",
+      "subject": "<full subject name, never truncate>",
       "day": "<Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday>",
-      "start_time": "<HH:MM, 24-hour>",
-      "end_time": "<HH:MM, 24-hour>",
-      "room": "<room/building code, or empty string if not shown>"
+      "start_time": "<HH:MM>",
+      "end_time": "<HH:MM>",
+      "room": "<room code or empty string>"
     }
   ]
 }
-If no class schedule is visible, return {"slots": []}.
+If no schedule is found, return {"slots": []}.
 """
 
 class Brain:

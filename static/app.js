@@ -728,9 +728,32 @@ const DAY_COLOR = {
   Thursday: "#c77dd0", Friday: "#e0c14b", Saturday: "#e06a6a", Sunday: "#9aa0ad",
 };
 
+let schedSlots = [];
+
 function schedState(id) {
-  ["#sched-initial","#sched-loading","#sched-success","#sched-error"].forEach((s) =>
+  ["#sched-initial","#sched-loading","#sched-preview","#sched-saved","#sched-error"].forEach((s) =>
     $(s).classList.toggle("hidden", s !== id));
+}
+
+function renderSchedSlots() {
+  $("#sched-slots-list").innerHTML = schedSlots.map((s, i) => {
+    const day = THAI_DAYS_FULL[s.day] || s.day;
+    const col = DAY_COLOR[s.day] || "var(--primary)";
+    const room = s.room ? ` <span class="sched-room">${esc(s.room)}</span>` : "";
+    return `<div class="sched-slot" data-idx="${i}">
+      <button class="sched-del-btn" data-idx="${i}" aria-label="ลบ ${esc(s.subject)}" title="ลบ">✕</button>
+      <span class="sched-day-chip" style="background:${col}20;color:${col}">${esc(day)}</span>
+      <span class="sched-time">${esc(s.start_time)}–${esc(s.end_time)}</span>
+      <span class="sched-subj">${esc(s.subject)}</span>${room}
+    </div>`;
+  }).join("");
+  // wire delete buttons
+  $("#sched-slots-list").querySelectorAll(".sched-del-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      schedSlots.splice(Number(btn.dataset.idx), 1);
+      renderSchedSlots();
+    });
+  });
 }
 
 async function submitScheduleFile(file) {
@@ -739,22 +762,9 @@ async function submitScheduleFile(file) {
     const fd = new FormData();
     fd.append("file", file);
     const data = await api("/api/schedule/upload", { method: "POST", body: fd });
-    renderDashboard(data.dashboard);
-
-    const slotList = data.slots.map((s) => {
-      const day = THAI_DAYS_FULL[s.day] || s.day;
-      const col = DAY_COLOR[s.day] || "var(--primary)";
-      const room = s.room ? ` <span class="sched-room">${esc(s.room)}</span>` : "";
-      return `<div class="sched-slot">
-        <span class="sched-day-chip" style="background:${col}20;color:${col}">${esc(day)}</span>
-        <span class="sched-time">${esc(s.start_time)}–${esc(s.end_time)}</span>
-        <span class="sched-subj">${esc(s.subject)}</span>${room}
-      </div>`;
-    }).join("");
-    $("#sched-slots-list").innerHTML = slotList;
-    $("#sched-ok-msg").textContent = `เพิ่มลงปฏิทินแล้ว ${data.slots.length} วิชา · ${data.tasks_created} คาบใน 2 สัปดาห์`;
-    schedState("#sched-success");
-    paintIcons($("#schedule-modal"));
+    schedSlots = data.slots;
+    renderSchedSlots();
+    schedState("#sched-preview");
   } catch (e) {
     $("#sched-err-text").textContent = e.message;
     schedState("#sched-error");
@@ -768,6 +778,27 @@ $("#schedule-upload-btn").addEventListener("click", () => {
 });
 $("#sched-close-btn").addEventListener("click", () => $("#schedule-modal").classList.remove("show"));
 $("#sched-retry-btn").addEventListener("click", () => schedState("#sched-initial"));
+$("#sched-reupload-btn").addEventListener("click", () => schedState("#sched-initial"));
+
+$("#sched-confirm-btn").addEventListener("click", async () => {
+  if (!schedSlots.length) { toast("ไม่มีวิชาที่จะบันทึก"); return; }
+  schedState("#sched-loading");
+  try {
+    const data = await api("/api/schedule/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slots: schedSlots }),
+    });
+    renderDashboard(data.dashboard);
+    $("#sched-ok-msg").textContent = `บันทึกลงปฏิทินแล้ว ${schedSlots.length} วิชา · ${data.tasks_created} คาบใน 2 สัปดาห์`;
+    schedState("#sched-saved");
+    paintIcons($("#schedule-modal"));
+  } catch (e) {
+    $("#sched-err-text").textContent = e.message;
+    schedState("#sched-error");
+  }
+});
+
 $("#sched-clear-btn").addEventListener("click", async () => {
   try {
     await api("/api/schedule/slots", { method: "DELETE" });

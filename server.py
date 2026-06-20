@@ -395,6 +395,7 @@ def get_streak(user: str = Depends(require_user)):
 
 @app.post("/api/schedule/upload")
 def post_schedule_upload(file: UploadFile = File(...), user: str = Depends(require_user)):
+    """Parse only — returns slots for user review. Does NOT save yet."""
     if not config.GEMINI_API_KEY:
         raise HTTPException(500, "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน .env")
     suffix = Path(file.filename or "schedule.jpg").suffix or ".jpg"
@@ -411,9 +412,20 @@ def post_schedule_upload(file: UploadFile = File(...), user: str = Depends(requi
     if not slots:
         raise HTTPException(422, "ไม่พบตารางเรียนในรูปนี้ — ลองรูปที่ชัดหรือมีตารางชัดเจนกว่านี้")
 
-    result = schedule.import_class_schedule(slots)
+    return {"slots": slots}
+
+
+class ScheduleConfirmIn(BaseModel):
+    slots: list[dict]
+
+
+@app.post("/api/schedule/confirm")
+def post_schedule_confirm(body: ScheduleConfirmIn, user: str = Depends(require_user)):
+    """Save user-reviewed slots and generate calendar tasks."""
+    if not body.slots:
+        raise HTTPException(400, "ไม่มีรายวิชาที่จะบันทึก")
+    result = schedule.import_class_schedule(body.slots)
     return {
-        "slots": slots,
         "tasks_created": result["tasks_created"],
         "dashboard": dashboard_data(),
     }

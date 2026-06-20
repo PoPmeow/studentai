@@ -293,10 +293,19 @@
       </div>
     </div>
 
-    <!-- state: success -->
-    <div class="sched-state hidden" id="sched-success">
-      <div class="sched-ok-banner"><span class="ic" data-icon="check"></span> <span id="sched-ok-msg"></span></div>
+    <!-- state: preview (review before confirm) -->
+    <div class="sched-state hidden" id="sched-preview">
+      <p class="sched-preview-hint">ตรวจสอบรายวิชา — กด <span aria-hidden="true">✕</span> เพื่อลบรายการที่ไม่ถูกต้อง</p>
       <div class="sched-slots" id="sched-slots-list"></div>
+      <div class="modal-foot-row" style="gap:8px">
+        <button class="mini-btn" id="sched-reupload-btn">อัพโหลดใหม่</button>
+        <button class="btn-primary" id="sched-confirm-btn">ยืนยันบันทึก</button>
+      </div>
+    </div>
+
+    <!-- state: saved -->
+    <div class="sched-state hidden" id="sched-saved">
+      <div class="sched-ok-banner"><span class="ic" data-icon="check"></span> <span id="sched-ok-msg"></span></div>
       <div class="modal-foot-row" style="gap:8px">
         <button class="mini-btn" id="sched-clear-btn">ล้างตารางเรียน</button>
         <button class="btn-primary" id="sched-close-btn">เสร็จแล้ว</button>
