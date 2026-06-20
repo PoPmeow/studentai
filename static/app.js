@@ -156,7 +156,7 @@ function renderDashboard(d) {
   state.tasks = d.tasks || [];
 
   // sidebar/topbar
-  $("#task-count").textContent = d.tasks.length || "";
+  $("#task-count").textContent = d.tasks.filter((t) => t.type !== "class").length || "";
   $("#model-name").textContent = d.channels.model + (d.channels.groq ? " + Groq" : "");
   const conns = { api: d.channels.api_key, sheets: d.channels.sheets,
                   discord: d.notify && d.notify.discord, push: d.notify && d.notify.push > 0 };
@@ -228,7 +228,7 @@ function renderDonut(summary) {
 
 function renderAgenda(tasks) {
   const el = $("#agenda-body");
-  const items = (tasks || []).filter((t) => t.due).slice(0, 5);
+  const items = (tasks || []).filter((t) => t.due && t.type !== "class").slice(0, 5);
   if (!items.length) { el.innerHTML = `<div class="empty-mini">ไม่มีงานค้าง 🎉</div>`; return; }
   el.innerHTML = items.map((t) => {
     const left = daysLeft(t.due);
@@ -352,13 +352,16 @@ function renderCalendar() {
 
   // collect items per yyyy-mm-dd
   const byDay = {};
-  const add = (date, type, label) => {
+  const add = (date, type, label, time = null) => {
     const k = (date || "").slice(0, 10);
-    if (!k) return; (byDay[k] ||= []).push({ type, label });
+    if (!k) return; (byDay[k] ||= []).push({ type, label, time });
   };
   for (const t of state.tasks) {
-    if (t.due) add(t.due, t.type || "other", t.title);
-    for (const s of (t.plan || [])) add(s.date, "plan", `อ่าน: ${t.title}`);
+    if (t.due) {
+      const time = t.due.length > 10 ? t.due.slice(11, 16) : null;
+      add(t.due, t.type || "other", t.title, time);
+    }
+    for (const s of (t.plan || [])) add(s.date, "plan", `อ่าน: ${t.title}`, s.time || null);
   }
 
   let html = THAI_DOW.map((d) => `<div class="cal-dow">${d}</div>`).join("");
@@ -376,21 +379,44 @@ function renderCalendar() {
   }
   $("#cal-grid").innerHTML = html;
   $("#cal-grid")._byDay = byDay;
-  showCalDay(todayKey.startsWith(`${y}-${String(m + 1).padStart(2, "0")}`) ? todayKey : null);
+  renderCalAgenda(byDay);
 }
-function showCalDay(key) {
-  const el = $("#cal-day");
-  $$(".cal-cell").forEach((c) => c.classList.toggle("sel", c.dataset.day === key));
-  if (!key) { el.innerHTML = ""; return; }
-  const items = ($("#cal-grid")._byDay || {})[key] || [];
-  el.innerHTML = `<h4>${fmtDate(key)}</h4>` + (items.length
-    ? items.map((i) => `<div class="cal-day-item"><span class="tag">${esc(i.type)}</span><span>${esc(i.label)}</span></div>`).join("")
-    : `<div class="cal-day-empty">ไม่มีงานหรือนัดหมายวันนี้</div>`);
+function renderCalAgenda(byDay) {
+  const el = $("#cal-agenda");
+  if (!el) return;
+  const bd = byDay || $("#cal-grid")._byDay || {};
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  let html = `<div class="ag-header">7 วันข้างหน้า</div>`;
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today); d.setDate(today.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    const items = (bd[key] || []).slice().sort((a, b) =>
+      (a.time || "99:99") <= (b.time || "99:99") ? -1 : 1);
+    const dayName = i === 0 ? "วันนี้" : i === 1 ? "พรุ่งนี้" : THAI_DOW[d.getDay()];
+    const dayDate = `${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`;
+    const itemsHtml = items.map((it) => {
+      if (it.type === "class") {
+        const t = it.time ? `<span class="ag-time">${esc(it.time)}</span>` : "";
+        return `<div class="ag-item ag-class">${t}<span>${esc(it.label)}</span></div>`;
+      }
+      if (it.type === "plan") {
+        return `<div class="ag-item ag-plan"><span>${esc(it.label)}</span></div>`;
+      }
+      const ul = daysLeft(key + "T23:59");
+      return `<div class="ag-item ag-task${ul?.urgent ? " urgent" : ""}"><span class="ag-tag">${esc(it.type)}</span><span>${esc(it.label)}</span></div>`;
+    }).join("") || `<span class="ag-vacant">ว่าง</span>`;
+    html += `<div class="ag-day${i === 0 ? " ag-today" : ""}">
+      <div class="ag-day-head"><b class="ag-day-name">${dayName}</b><span class="ag-day-date">${dayDate}</span></div>
+      <div class="ag-items">${itemsHtml}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
 }
 
 /* ════════ Tasks view ════════ */
 function renderTasksView(tasks) {
-  $("#task-grid").innerHTML = tasks.map((t) => {
+  const workTasks = tasks.filter((t) => t.type !== "class");
+  $("#task-grid").innerHTML = workTasks.map((t) => {
     const left = daysLeft(t.due);
     return `<div class="task-card ${left?.urgent ? "urgent" : ""}" data-id="${t.id}" data-title="${esc(t.title)}">
       <div class="task-type">${esc(t.type)}</div>
@@ -400,7 +426,7 @@ function renderTasksView(tasks) {
         `<div class="plan-row"><span class="plan-when">${fmtDate(s.date)} ${esc(s.time || "")}</span>
           <span class="plan-focus">${esc(s.focus)}</span></div>`).join("")}</div>` : ""}
       <button class="task-done-btn" data-id="${t.id}">✓ เสร็จแล้ว</button></div>`;
-  }).join("") || `<div class="empty-state">ยังไม่มีงาน — ลองพิมพ์ในแชท เช่น "ศุกร์นี้ส่งรายงานฟิสิกส์"</div>`;
+  }).join("") || `<div class="empty-state">ยังไม่มีงานค้าง 🎉<br><small>คาบเรียนดูได้ในหน้าปฏิทิน</small></div>`;
 }
 
 /* ════════ Expenses view ════════ */
@@ -556,7 +582,10 @@ $("#quick-form").addEventListener("submit", (e) => { e.preventDefault(); const v
 $$(".chip").forEach((c) => c.addEventListener("click", () => sendMessage(c.dataset.text)));
 $$(".nav-item").forEach((b) => b.addEventListener("click", () => switchView(b.dataset.view)));
 $("#task-grid").addEventListener("click", (e) => { const b = e.target.closest(".task-done-btn"); if (b) taskDone(+b.dataset.id); });
-$("#cal-grid").addEventListener("click", (e) => { const c = e.target.closest(".cal-cell:not(.empty)"); if (c) showCalDay(c.dataset.day); });
+$("#cal-grid").addEventListener("click", (e) => {
+  const c = e.target.closest(".cal-cell:not(.empty)");
+  if (c) { $$(".cal-cell").forEach((x) => x.classList.remove("sel")); c.classList.add("sel"); }
+});
 $("#cal-prev").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCalendar(); });
 $("#cal-next").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); });
 $("#month-prev").addEventListener("click", () => shiftMonth(-1));

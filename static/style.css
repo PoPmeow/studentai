@@ -326,11 +326,23 @@ body::before {
 .d.exam, .d.assignment, .d.lab, .d.project, .d.reading { background: var(--schedule); }
 .d.event { background: var(--brain); }
 .d.plan { background: var(--expense); }
-.cal-day { margin-top: 18px; }
-.cal-day h4 { font-family: var(--font-display); font-weight: 500; font-size: 15px; margin-bottom: 10px; }
-.cal-day-item { display: flex; gap: 10px; align-items: baseline; padding: 8px 12px; border: 1px solid var(--line); border-radius: var(--r-sm); background: var(--panel); margin-bottom: 8px; font-size: 13.5px; }
-.cal-day-item .tag { font-size: 11px; padding: 2px 8px; border-radius: 99px; background: var(--bg-soft); color: var(--muted); white-space: nowrap; }
-.cal-day-empty { color: var(--faint); font-size: 13px; }
+.cal-agenda { margin-top: 22px; }
+.ag-header { font-size: 11px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
+.ag-day { padding: 10px 0; border-top: 1px solid var(--line); }
+.ag-day:first-of-type { border-top: 0; }
+.ag-today .ag-day-name { color: var(--brain); }
+.ag-day-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 7px; }
+.ag-day-name { font-family: var(--font-display); font-size: 14px; font-weight: 600; }
+.ag-day-date { font-size: 12px; color: var(--muted); }
+.ag-items { display: flex; flex-direction: column; gap: 5px; }
+.ag-item { display: flex; align-items: center; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: var(--r-sm); }
+.ag-class { background: color-mix(in srgb, var(--brain) 7%, var(--bg-soft)); }
+.ag-task { background: var(--bg-soft); }
+.ag-task.urgent { background: color-mix(in srgb, var(--danger) 9%, var(--bg-soft)); }
+.ag-plan { background: transparent; padding-left: 4px; color: var(--muted); font-size: 12.5px; }
+.ag-time { font-family: var(--font-mono); font-size: 12px; color: var(--brain); min-width: 40px; flex-shrink: 0; }
+.ag-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 99px; background: var(--bg); color: var(--muted); white-space: nowrap; flex-shrink: 0; }
+.ag-vacant { font-size: 12.5px; color: var(--faint); padding-left: 4px; }
 
 /* ═══════════ Tasks ═══════════ */
 .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; padding: 20px 34px 40px; }
