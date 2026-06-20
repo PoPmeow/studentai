@@ -391,6 +391,45 @@ def get_streak(user: str = Depends(require_user)):
     return streak.status()
 
 
+# ───────── class schedule ─────────
+
+@app.post("/api/schedule/upload")
+def post_schedule_upload(file: UploadFile = File(...), user: str = Depends(require_user)):
+    if not config.GEMINI_API_KEY:
+        raise HTTPException(500, "ยังไม่ได้ตั้งค่า GEMINI_API_KEY ใน .env")
+    suffix = Path(file.filename or "schedule.jpg").suffix or ".jpg"
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(file.file.read())
+        tmp_path = tmp.name
+    try:
+        slots = get_brain().parse_schedule_image(tmp_path)
+    except Exception as e:
+        raise HTTPException(502, friendly_ai_error(e))
+    finally:
+        Path(tmp_path).unlink(missing_ok=True)
+
+    if not slots:
+        raise HTTPException(422, "ไม่พบตารางเรียนในรูปนี้ — ลองรูปที่ชัดหรือมีตารางชัดเจนกว่านี้")
+
+    result = schedule.import_class_schedule(slots)
+    return {
+        "slots": slots,
+        "tasks_created": result["tasks_created"],
+        "dashboard": dashboard_data(),
+    }
+
+
+@app.get("/api/schedule/slots")
+def get_schedule_slots(user: str = Depends(require_user)):
+    return {"slots": schedule.get_class_schedule()}
+
+
+@app.delete("/api/schedule/slots")
+def delete_schedule_slots(user: str = Depends(require_user)):
+    schedule.clear_class_schedule()
+    return {"ok": True}
+
+
 # ───────── cron (GitHub Actions / Vercel Cron) ─────────
 
 @app.api_route("/api/cron/remind", methods=["GET", "POST"])

@@ -1,9 +1,14 @@
 """Schedule module — store tasks + study plans, fire due reminders."""
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
 from .. import config
 from ..notify import user_notify
 from ..storage import json_store
+
+_DAY_WD = {
+    "monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3,
+    "friday": 4, "saturday": 5, "sunday": 6,
+}
 
 # แจ้งเตือนล่วงหน้าก่อนถึงกำหนด (มาก่อนเสมอ ไม่เตือนหลังหมดเวลา)
 REMINDER_OFFSETS = [
@@ -109,3 +114,71 @@ def pending_reminders() -> list:
          if not r.get("sent") and (r.get("at") or "") > now),
         key=lambda r: r["at"],
     )
+
+
+# ──────── Class schedule ────────
+
+def _next_weekday(target_wd: int, from_date: date) -> date:
+    days_ahead = (target_wd - from_date.weekday()) % 7
+    return from_date + timedelta(days=days_ahead)
+
+
+def _generate_class_tasks(slots: list[dict], days_ahead: int = 14) -> int:
+    """Create one-time tasks for every class occurrence in the next `days_ahead` days."""
+    now = config.now()
+    today = now.date()
+    end_date = today + timedelta(days=days_ahead)
+
+    existing_keys = {
+        (t.get("title", ""), t.get("due", ""))
+        for t in json_store.tasks.load()
+    }
+
+    created = 0
+    for slot in slots:
+        wd = _DAY_WD.get(slot.get("day", "").lower())
+        if wd is None:
+            continue
+        start_time = slot.get("start_time", "08:00")
+        subject = slot.get("subject", "วิชาไม่ระบุ").strip()
+        room = slot.get("room", "").strip()
+        title = f"เรียน {subject}" + (f" ({room})" if room else "")
+
+        d = _next_weekday(wd, today)
+        while d <= end_date:
+            due = f"{d.isoformat()}T{start_time}"
+            key = (title, due)
+            if key not in existing_keys:
+                saved = json_store.tasks.append({
+                    "title": title,
+                    "type": "class",
+                    "due": due,
+                    "plan": [],
+                    "done": False,
+                    "created_at": now.isoformat(timespec="minutes"),
+                })
+                new_reminders = _build_reminders(title, due)
+                if new_reminders:
+                    reminders = json_store.reminders.load()
+                    for r in new_reminders:
+                        reminders.append({"task_id": saved["id"], **r, "sent": False})
+                    json_store.reminders.save(reminders)
+                existing_keys.add(key)
+                created += 1
+            d += timedelta(weeks=1)
+    return created
+
+
+def import_class_schedule(slots: list[dict]) -> dict:
+    """Save recurring slots and generate tasks for the next 14 days."""
+    json_store.class_schedule.set({"slots": slots})
+    created = _generate_class_tasks(slots)
+    return {"slots_count": len(slots), "tasks_created": created}
+
+
+def get_class_schedule() -> list[dict]:
+    return json_store.class_schedule.get().get("slots", [])
+
+
+def clear_class_schedule() -> None:
+    json_store.class_schedule.set({"slots": []})

@@ -48,6 +48,7 @@ const ICONS = {
   tag: '<path d="M12.6 2.6 21 11a2 2 0 0 1 0 2.8l-7.2 7.2a2 2 0 0 1-2.8 0L2.6 12.6A2 2 0 0 1 2 11.2V4a2 2 0 0 1 2-2h7.2a2 2 0 0 1 1.4.6z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
   user: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
   logout: '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
 };
 const iconSVG = (name) => ICONS[name]
   ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name]}</svg>`
@@ -715,6 +716,84 @@ $("#account-delete").addEventListener("click", async () => {
     toast("ลบบัญชีแล้ว", true);
     setTimeout(() => location.reload(), 700);
   } catch (e) { $("#del-error").textContent = e.message; }
+});
+
+/* ════════ Schedule upload modal ════════ */
+const THAI_DAYS_FULL = {
+  Monday: "จันทร์", Tuesday: "อังคาร", Wednesday: "พุธ",
+  Thursday: "พฤหัสบดี", Friday: "ศุกร์", Saturday: "เสาร์", Sunday: "อาทิตย์",
+};
+const DAY_COLOR = {
+  Monday: "#6a8fe0", Tuesday: "#5bb98c", Wednesday: "#e0823c",
+  Thursday: "#c77dd0", Friday: "#e0c14b", Saturday: "#e06a6a", Sunday: "#9aa0ad",
+};
+
+function schedState(id) {
+  ["#sched-initial","#sched-loading","#sched-success","#sched-error"].forEach((s) =>
+    $(s).classList.toggle("hidden", s !== id));
+}
+
+async function submitScheduleFile(file) {
+  schedState("#sched-loading");
+  try {
+    const fd = new FormData();
+    fd.append("file", file);
+    const data = await api("/api/schedule/upload", { method: "POST", body: fd });
+    renderDashboard(data.dashboard);
+
+    const slotList = data.slots.map((s) => {
+      const day = THAI_DAYS_FULL[s.day] || s.day;
+      const col = DAY_COLOR[s.day] || "var(--primary)";
+      const room = s.room ? ` <span class="sched-room">${esc(s.room)}</span>` : "";
+      return `<div class="sched-slot">
+        <span class="sched-day-chip" style="background:${col}20;color:${col}">${esc(day)}</span>
+        <span class="sched-time">${esc(s.start_time)}–${esc(s.end_time)}</span>
+        <span class="sched-subj">${esc(s.subject)}</span>${room}
+      </div>`;
+    }).join("");
+    $("#sched-slots-list").innerHTML = slotList;
+    $("#sched-ok-msg").textContent = `เพิ่มลงปฏิทินแล้ว ${data.slots.length} วิชา · ${data.tasks_created} คาบใน 2 สัปดาห์`;
+    schedState("#sched-success");
+    paintIcons($("#schedule-modal"));
+  } catch (e) {
+    $("#sched-err-text").textContent = e.message;
+    schedState("#sched-error");
+  }
+}
+
+$("#schedule-upload-btn").addEventListener("click", () => {
+  schedState("#sched-initial");
+  $("#schedule-modal").classList.add("show");
+  paintIcons($("#schedule-modal"));
+});
+$("#sched-close-btn").addEventListener("click", () => $("#schedule-modal").classList.remove("show"));
+$("#sched-retry-btn").addEventListener("click", () => schedState("#sched-initial"));
+$("#sched-clear-btn").addEventListener("click", async () => {
+  try {
+    await api("/api/schedule/slots", { method: "DELETE" });
+    toast("ล้างตารางเรียนแล้ว", true);
+    $("#schedule-modal").classList.remove("show");
+  } catch (e) { toast(e.message); }
+});
+
+// click drop zone label → trigger file input
+$("#sched-dropzone").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("#sched-file-input").click(); }
+});
+$("#sched-file-input").addEventListener("change", (e) => {
+  if (e.target.files[0]) submitScheduleFile(e.target.files[0]);
+  e.target.value = "";
+});
+
+// drag-and-drop on the drop zone
+const dz = $("#sched-dropzone");
+dz.addEventListener("dragover", (e) => { e.preventDefault(); dz.classList.add("drag"); });
+dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+dz.addEventListener("drop", (e) => {
+  e.preventDefault();
+  dz.classList.remove("drag");
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith("image/")) submitScheduleFile(f);
 });
 
 /* init — check session first, then load app or show login */

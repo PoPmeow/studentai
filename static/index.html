@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Mitr:wght@400;500;600&family=Anuphan:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=8">
+<link rel="stylesheet" href="/static/style.css?v=9">
 </head>
 <body>
 
@@ -181,10 +181,13 @@
     <section class="view view-scroll" id="view-calendar" aria-label="ปฏิทิน">
       <header class="view-head view-head-row">
         <div><h2><span class="ic" data-icon="calendar"></span> ปฏิทิน</h2><p>deadline · แผนอ่าน · นัดหมาย รวมในที่เดียว</p></div>
-        <div class="month-nav">
-          <button class="mini-btn" id="cal-prev" aria-label="เดือนก่อนหน้า"><span class="ic" data-icon="chevron-left"></span></button>
-          <span class="month-label" id="cal-label"></span>
-          <button class="mini-btn" id="cal-next" aria-label="เดือนถัดไป"><span class="ic" data-icon="chevron-right"></span></button>
+        <div class="head-actions">
+          <button class="mini-btn" id="schedule-upload-btn" aria-label="อัพโหลดตารางเรียน" title="อัพโหลดตารางเรียน"><span class="ic" data-icon="upload"></span> ตารางเรียน</button>
+          <div class="month-nav">
+            <button class="mini-btn" id="cal-prev" aria-label="เดือนก่อนหน้า"><span class="ic" data-icon="chevron-left"></span></button>
+            <span class="month-label" id="cal-label"></span>
+            <button class="mini-btn" id="cal-next" aria-label="เดือนถัดไป"><span class="ic" data-icon="chevron-right"></span></button>
+          </div>
         </div>
       </header>
       <div class="cal-wrap">
@@ -263,6 +266,53 @@
   </div>
 </div>
 
+<!-- schedule upload modal -->
+<div class="modal-backdrop" id="schedule-modal">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="อัพโหลดตารางเรียน">
+    <div class="modal-head">
+      <h3><span class="ic" data-icon="upload"></span> อัพโหลดตารางเรียน</h3>
+      <button class="modal-close" data-close aria-label="ปิด"><span class="ic" data-icon="close"></span></button>
+    </div>
+
+    <!-- state: initial -->
+    <div class="sched-state" id="sched-initial">
+      <label class="sched-dropzone" id="sched-dropzone" tabindex="0" role="button" aria-label="เลือกรูปตารางเรียน">
+        <span class="ic sched-dropzone-icon" data-icon="upload"></span>
+        <div class="sched-dropzone-title">วางรูปตารางเรียน หรือคลิกเพื่อเลือก</div>
+        <div class="sched-dropzone-sub">รองรับ JPG · PNG · WEBP</div>
+        <input type="file" id="sched-file-input" accept="image/*" style="display:none">
+      </label>
+      <p class="sched-hint">AI จะอ่านตาราง แล้วเพิ่มคาบเรียนเข้าปฏิทินให้ 2 สัปดาห์ล่วงหน้าอัตโนมัติ</p>
+    </div>
+
+    <!-- state: loading -->
+    <div class="sched-state hidden" id="sched-loading">
+      <div class="sched-spinner" aria-live="polite" aria-busy="true">
+        <div class="spin-ring"></div>
+        <div class="sched-loading-text">AI กำลังอ่านตารางเรียน…</div>
+      </div>
+    </div>
+
+    <!-- state: success -->
+    <div class="sched-state hidden" id="sched-success">
+      <div class="sched-ok-banner"><span class="ic" data-icon="check"></span> <span id="sched-ok-msg"></span></div>
+      <div class="sched-slots" id="sched-slots-list"></div>
+      <div class="modal-foot-row" style="gap:8px">
+        <button class="mini-btn" id="sched-clear-btn">ล้างตารางเรียน</button>
+        <button class="btn-primary" id="sched-close-btn">เสร็จแล้ว</button>
+      </div>
+    </div>
+
+    <!-- state: error -->
+    <div class="sched-state hidden" id="sched-error">
+      <div class="sched-err-msg" id="sched-err-text" role="alert"></div>
+      <div class="modal-foot-row">
+        <button class="btn-primary" id="sched-retry-btn">ลองอีกครั้ง</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- login overlay -->
 <div class="auth-overlay show" id="auth-overlay">
   <form class="auth-card" id="auth-form" data-mode="login">
@@ -306,6 +356,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=8"></script>
+<script src="/static/app.js?v=9"></script>
 </body>
 </html>

@@ -78,6 +78,23 @@ ONLY a JSON object (no markdown fences):
 If the amount is unreadable, set "amount": null.
 """
 
+SCHEDULE_IMAGE_PROMPT = """\
+This image is a Thai university class schedule table. Extract ALL class entries \
+and return ONLY a JSON object (no markdown fences):
+{
+  "slots": [
+    {
+      "subject": "<subject name, Thai or English as shown>",
+      "day": "<Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday>",
+      "start_time": "<HH:MM, 24-hour>",
+      "end_time": "<HH:MM, 24-hour>",
+      "room": "<room/building code, or empty string if not shown>"
+    }
+  ]
+}
+If no class schedule is visible, return {"slots": []}.
+"""
+
 class Brain:
     def __init__(self):
         # ใช้ SDK ใหม่ genai.Client
@@ -168,6 +185,14 @@ class Brain:
         prompt = SLIP_PROMPT.format(today=today)
         img = Image.open(image_path)
         return self._extract_json(self._generate([img, prompt]))
+
+    def parse_schedule_image(self, image_path: str) -> list[dict]:
+        """Vision call: parse a class schedule image into weekly slots."""
+        img = Image.open(image_path)
+        result = self._extract_json(self._generate([img, SCHEDULE_IMAGE_PROMPT]))
+        if isinstance(result, dict):
+            return result.get("slots", [])
+        return []
 
     @staticmethod
     def _extract_json(text_response: str) -> dict:

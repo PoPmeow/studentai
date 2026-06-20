@@ -615,3 +615,31 @@ input:focus:not(:focus-visible),
 .danger-zone .acct-title { color: var(--danger); }
 .btn-danger { width: 100%; padding: 11px; border: 1px solid var(--danger); border-radius: var(--r-sm); background: color-mix(in srgb, var(--danger) 10%, transparent); color: var(--danger); font-family: var(--font-body); font-size: 14px; font-weight: 500; cursor: pointer; transition: background .15s; }
 .btn-danger:hover { background: color-mix(in srgb, var(--danger) 20%, transparent); }
+
+/* ── schedule upload modal ── */
+.sched-state.hidden { display: none; }
+.sched-dropzone {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; min-height: 160px; border: 2px dashed var(--line); border-radius: var(--r-md);
+  cursor: pointer; padding: 28px 20px; text-align: center;
+  transition: border-color .15s, background .15s;
+}
+.sched-dropzone:hover, .sched-dropzone.drag { border-color: var(--primary); background: color-mix(in srgb, var(--primary) 6%, transparent); }
+.sched-dropzone:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+.sched-dropzone-icon svg { width: 36px; height: 36px; color: var(--primary); opacity: .7; }
+.sched-dropzone-title { font-size: 15px; font-weight: 500; color: var(--text); }
+.sched-dropzone-sub { font-size: 12.5px; color: var(--muted); }
+.sched-hint { font-size: 12.5px; color: var(--muted); text-align: center; margin-top: 12px; line-height: 1.5; }
+.sched-spinner { display: flex; flex-direction: column; align-items: center; gap: 16px; padding: 36px 0; }
+.spin-ring { width: 38px; height: 38px; border: 3px solid var(--bg-soft); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.sched-loading-text { font-size: 14px; color: var(--muted); }
+.sched-ok-banner { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 500; color: var(--success, #3a9c6f); padding: 10px 14px; background: color-mix(in srgb, var(--success, #3a9c6f) 10%, transparent); border-radius: var(--r-sm); margin-bottom: 14px; }
+.sched-ok-banner .ic svg { width: 16px; height: 16px; }
+.sched-slots { display: flex; flex-direction: column; gap: 6px; max-height: 260px; overflow-y: auto; }
+.sched-slot { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg-soft); border-radius: var(--r-sm); font-size: 13.5px; flex-wrap: wrap; }
+.sched-day-chip { font-size: 12px; font-weight: 600; padding: 2px 8px; border-radius: 20px; white-space: nowrap; }
+.sched-time { font-family: var(--font-mono); font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+.sched-subj { flex: 1; min-width: 0; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sched-room { font-size: 12px; color: var(--muted); background: var(--bg); padding: 1px 6px; border-radius: 4px; }
+.sched-err-msg { color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, transparent); border-radius: var(--r-sm); padding: 12px 14px; font-size: 13.5px; line-height: 1.55; margin-bottom: 4px; }
