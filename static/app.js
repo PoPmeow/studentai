@@ -159,11 +159,17 @@ function renderDashboard(d) {
   $("#task-count").textContent = d.tasks.filter((t) => t.type !== "class").length || "";
   $("#model-name").textContent = d.channels.model + (d.channels.groq ? " + Groq" : "");
   const conns = { api: d.channels.api_key, sheets: d.channels.sheets,
-                  discord: d.notify && d.notify.discord, push: d.notify && d.notify.push > 0 };
+                  discord: d.notify && d.notify.discord,
+                  line: d.notify && d.notify.line,
+                  push: d.notify && d.notify.push > 0 };
   for (const [k, on] of Object.entries(conns)) $(`#conn-${k}`)?.classList.toggle("on", !!on);
   const dw = $("#discord-webhook");
   if (dw) dw.placeholder = (d.notify && d.notify.discord)
     ? "ตั้ง Discord ไว้แล้ว — วางลิงก์ใหม่เพื่อเปลี่ยน" : "วาง Discord webhook URL ของตัวเอง";
+  const lw = $("#line-user-id");
+  if (lw) lw.placeholder = (d.notify && d.notify.line)
+    ? "ตั้ง LINE ไว้แล้ว — วาง ID ใหม่เพื่อเปลี่ยน" : "LINE User ID (Uxxxxxxxx…)";
+  renderGrades(d.grades || []);
 
   // hero
   $("#hero-greet").textContent = greeting();
@@ -409,8 +415,10 @@ function showCalDay(key) {
 }
 
 /* ════════ Tasks view ════════ */
+let taskSearchQ = "";
 function renderTasksView(tasks) {
-  const workTasks = tasks.filter((t) => t.type !== "class");
+  let workTasks = tasks.filter((t) => t.type !== "class");
+  if (taskSearchQ) workTasks = workTasks.filter((t) => t.title.toLowerCase().includes(taskSearchQ.toLowerCase()));
   $("#task-grid").innerHTML = workTasks.map((t) => {
     const left = daysLeft(t.due);
     return `<div class="task-card ${left?.urgent ? "urgent" : ""}" data-id="${t.id}" data-title="${esc(t.title)}">
@@ -858,6 +866,147 @@ dz.addEventListener("drop", (e) => {
   const f = e.dataTransfer.files[0];
   if (f && f.type.startsWith("image/")) submitScheduleFile(f);
 });
+
+/* ════════ LINE save ════════ */
+$("#line-save").addEventListener("click", async () => {
+  const line_user_id = $("#line-user-id").value.trim();
+  try {
+    const d = await api("/api/notify/settings", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ line_user_id }) });
+    $("#line-user-id").value = "";
+    renderDashboard(d.dashboard);
+    toast(line_user_id ? "บันทึก LINE แล้ว ✓" : "ลบ LINE แล้ว", true);
+  } catch (e) { toast(e.message); }
+});
+
+/* ════════ Task search ════════ */
+$("#task-search").addEventListener("input", (e) => {
+  taskSearchQ = e.target.value;
+  renderTasksView(state.tasks);
+});
+
+/* ════════ Recurring tasks ════════ */
+$("#recur-task-btn").addEventListener("click", () => {
+  $("#recur-err").textContent = "";
+  $("#recur-modal").classList.add("show");
+});
+
+$("#recur-submit").addEventListener("click", async () => {
+  const title = $("#recur-title").value.trim();
+  if (!title) { $("#recur-err").textContent = "กรุณาใส่ชื่องาน"; return; }
+  const body = {
+    title, type: $("#recur-type").value,
+    weekday: $("#recur-weekday").value,
+    time: $("#recur-time").value || "23:59",
+    weeks: parseInt($("#recur-weeks").value) || 16,
+  };
+  try {
+    const d = await api("/api/tasks/recurring", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    renderDashboard(d.dashboard);
+    $("#recur-modal").classList.remove("show");
+    $("#recur-title").value = "";
+    toast(`สร้างงานวนซ้ำ ${d.tasks_created} รายการ ✓`, true);
+  } catch (e) { $("#recur-err").textContent = e.message; }
+});
+
+/* ════════ Grades ════════ */
+const GRADE_POINTS = { "A": 4.0, "B+": 3.5, "B": 3.0, "C+": 2.5, "C": 2.0, "D+": 1.5, "D": 1.0, "F": 0.0 };
+const GRADE_COLOR = { "A": "var(--schedule)", "B+": "var(--schedule)", "B": "var(--brain)", "C+": "var(--brain)", "C": "var(--expense)", "D+": "var(--expense)", "D": "var(--danger)", "F": "var(--danger)" };
+
+function renderGrades(grades) {
+  const totalCr = grades.reduce((s, g) => s + (g.credits || 0), 0);
+  const gpa = totalCr ? grades.reduce((s, g) => s + (g.credits || 0) * (g.points || 0), 0) / totalCr : null;
+  $("#grades-gpa").textContent = gpa !== null ? gpa.toFixed(2) : "—";
+  $("#grades-credits").textContent = totalCr;
+  $("#grades-list").innerHTML = grades.length
+    ? grades.map((g) => `<div class="grade-row">
+        <span class="grade-subj">${esc(g.subject)}</span>
+        <span class="grade-cr">${g.credits} หน่วย</span>
+        <span class="grade-letter" style="color:${GRADE_COLOR[g.grade] || "var(--text)"}">${esc(g.grade)}</span>
+        <button class="grade-del" data-id="${g.id}" aria-label="ลบ">✕</button>
+      </div>`).join("")
+    : `<div class="empty-mini">ยังไม่มีวิชา — กด + เพิ่มวิชา</div>`;
+}
+
+$("#grades-list").addEventListener("click", async (e) => {
+  const btn = e.target.closest(".grade-del");
+  if (!btn) return;
+  try {
+    const d = await api(`/api/grades/${btn.dataset.id}`, { method: "DELETE" });
+    renderGrades(d.grades);
+  } catch (e) { toast(e.message); }
+});
+
+$("#add-grade-btn").addEventListener("click", () => $("#grade-modal").classList.add("show"));
+
+$("#grade-submit").addEventListener("click", async () => {
+  const subject = $("#grade-subject").value.trim();
+  if (!subject) { toast("กรุณาใส่ชื่อวิชา"); return; }
+  try {
+    const d = await api("/api/grades", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ subject, credits: parseFloat($("#grade-credits").value) || 3, grade: $("#grade-letter").value }),
+    });
+    renderGrades(d.grades);
+    $("#grade-modal").classList.remove("show");
+    $("#grade-subject").value = "";
+    toast("เพิ่มวิชาแล้ว ✓", true);
+  } catch (e) { toast(e.message); }
+});
+
+/* ════════ Pomodoro ════════ */
+const POMO = {
+  MODES: { focus: 1500, short: 300, long: 900 },
+  s: { mode: "focus", left: 1500, running: false, sessions: parseInt(localStorage.getItem("pomoSessions") || "0"), timer: null },
+};
+function pomoRender() {
+  const min = String(Math.floor(POMO.s.left / 60)).padStart(2, "0");
+  const sec = String(POMO.s.left % 60).padStart(2, "0");
+  $("#pomo-time").textContent = `${min}:${sec}`;
+  $("#pomo-start").textContent = POMO.s.running ? "⏸" : "▶";
+  const labels = { focus: "🍅 Focus", short: "☕ Break", long: "🌙 Long Break" };
+  $("#pomo-mode").textContent = labels[POMO.s.mode];
+  $("#pomo-sessions").textContent = `${POMO.s.sessions} sessions วันนี้`;
+  $$(".pomo-tab").forEach((t) => t.classList.toggle("active", t.dataset.mode === POMO.s.mode));
+  document.title = POMO.s.running ? `${min}:${sec} — Student AI` : "Student AI — ผู้ช่วยส่วนตัว";
+}
+function pomoComplete() {
+  clearInterval(POMO.s.timer); POMO.s.running = false;
+  if (POMO.s.mode === "focus") {
+    POMO.s.sessions++;
+    localStorage.setItem("pomoSessions", POMO.s.sessions);
+    const isLong = POMO.s.sessions % 4 === 0;
+    POMO.s.mode = isLong ? "long" : "short";
+    toast(`🍅 Focus เสร็จ! พัก ${isLong ? "15" : "5"} นาที`, true);
+  } else {
+    POMO.s.mode = "focus";
+    toast("⏰ พักเสร็จ — Focus ต่อได้เลย", true);
+  }
+  POMO.s.left = POMO.MODES[POMO.s.mode];
+  pomoRender();
+}
+$("#pomo-fab").addEventListener("click", () => {
+  const panel = $("#pomo-panel");
+  panel.hidden = !panel.hidden;
+  if (!panel.hidden) pomoRender();
+});
+$("#pomo-close").addEventListener("click", () => { $("#pomo-panel").hidden = true; });
+$("#pomo-start").addEventListener("click", () => {
+  if (POMO.s.running) { clearInterval(POMO.s.timer); POMO.s.running = false; }
+  else {
+    POMO.s.running = true;
+    POMO.s.timer = setInterval(() => { POMO.s.left--; if (POMO.s.left <= 0) pomoComplete(); else pomoRender(); }, 1000);
+  }
+  pomoRender();
+});
+$("#pomo-reset").addEventListener("click", () => {
+  clearInterval(POMO.s.timer); POMO.s.running = false;
+  POMO.s.left = POMO.MODES[POMO.s.mode]; pomoRender();
+});
+$$(".pomo-tab").forEach((t) => t.addEventListener("click", () => {
+  clearInterval(POMO.s.timer); POMO.s.running = false;
+  POMO.s.mode = t.dataset.mode; POMO.s.left = parseInt(t.dataset.secs);
+  pomoRender();
+}));
 
 /* init — check session first, then load app or show login */
 fetch("/api/me").then(async (r) => {

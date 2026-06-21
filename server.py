@@ -92,6 +92,21 @@ class LoginIn(BaseModel):
 
 class DiscordIn(BaseModel):
     webhook: str = ""
+    line_user_id: str = ""
+
+
+class GradeIn(BaseModel):
+    subject: str
+    credits: float
+    grade: str
+
+
+class RecurringTaskIn(BaseModel):
+    title: str
+    type: str = "assignment"
+    weekday: str
+    time: str = "23:59"
+    weeks: int = 16
 
 
 class PushSubIn(BaseModel):
@@ -184,6 +199,9 @@ def account_delete(body: DeleteAccountIn, response: Response, user: str = Depend
     return {"ok": True}
 
 
+_GRADE_POINTS = {"A": 4.0, "B+": 3.5, "B": 3.0, "C+": 2.5, "C": 2.0, "D+": 1.5, "D": 1.0, "F": 0.0}
+
+
 def dashboard_data() -> dict:
     summary = expense.monthly_summary()
     summary.pop("items", None)
@@ -194,6 +212,7 @@ def dashboard_data() -> dict:
         "budget": budget.status(),
         "streak": streak.status(),
         "notify": user_notify.status(),
+        "grades": json_store.grades.load(),
         "channels": {
             "sheets": bool(config.GOOGLE_SHEETS_CREDENTIALS_FILE),
             "api_key": bool(config.GEMINI_API_KEY),
@@ -329,6 +348,7 @@ def notify_settings_set(body: DiscordIn, user: str = Depends(require_user)):
     if url and "discord.com/api/webhooks/" not in url and "discordapp.com/api/webhooks/" not in url:
         raise HTTPException(400, "ลิงก์ไม่ถูกต้อง — ต้องเป็น Discord webhook (https://discord.com/api/webhooks/...)")
     user_notify.set_discord(url)
+    user_notify.set_line_user_id(body.line_user_id)
     return {"ok": True, "dashboard": dashboard_data()}
 
 
@@ -440,6 +460,41 @@ def get_schedule_slots(user: str = Depends(require_user)):
 def delete_schedule_slots(user: str = Depends(require_user)):
     schedule.clear_class_schedule()
     return {"ok": True}
+
+
+# ───────── grades ─────────
+
+@app.get("/api/grades")
+def grades_list(user: str = Depends(require_user)):
+    return {"grades": json_store.grades.load()}
+
+
+@app.post("/api/grades")
+def grades_add(body: GradeIn, user: str = Depends(require_user)):
+    entry = {
+        "subject": body.subject.strip(),
+        "credits": body.credits,
+        "grade": body.grade,
+        "points": _GRADE_POINTS.get(body.grade, 0.0),
+    }
+    json_store.grades.append(entry)
+    return {"grades": json_store.grades.load()}
+
+
+@app.delete("/api/grades/{grade_id}")
+def grades_delete(grade_id: int, user: str = Depends(require_user)):
+    json_store.grades.remove(grade_id)
+    return {"grades": json_store.grades.load()}
+
+
+# ───────── recurring tasks ─────────
+
+@app.post("/api/tasks/recurring")
+def tasks_recurring(body: RecurringTaskIn, user: str = Depends(require_user)):
+    created = schedule.create_recurring_tasks(
+        body.title, body.type, body.weekday, body.time, body.weeks
+    )
+    return {"tasks_created": created, "dashboard": dashboard_data()}
 
 
 # ───────── cron (GitHub Actions / Vercel Cron) ─────────

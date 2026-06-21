@@ -15,12 +15,19 @@ def status() -> dict:
     return {
         "discord": bool(s.get("discord_webhook")),
         "push": len(s.get("push_subscriptions", [])),
+        "line": bool(s.get("line_user_id")),
     }
 
 
 def set_discord(url: str) -> dict:
     s = get_settings()
     s["discord_webhook"] = (url or "").strip()
+    return json_store.notify_settings.set(s)
+
+
+def set_line_user_id(user_id: str) -> dict:
+    s = get_settings()
+    s["line_user_id"] = (user_id or "").strip()
     return json_store.notify_settings.set(s)
 
 
@@ -50,7 +57,11 @@ def send(message: str, title: str = "Student AI") -> list[str]:
             sent.append("Discord")
     except Exception:
         pass
-
+    try:
+        if senders.send_line_to(s.get("line_user_id", ""), message):
+            sent.append("LINE")
+    except Exception:
+        pass
     dead, n = webpush.send_push(s.get("push_subscriptions", []), title, message)
     if n:
         sent.append("Push")

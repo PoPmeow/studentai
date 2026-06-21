@@ -17,6 +17,21 @@ def send_discord_to(webhook_url: str, message: str) -> bool:
     return True
 
 
+def send_line_to(user_id: str, message: str) -> bool:
+    """Send LINE Messaging API push to a specific user (per-user channel)."""
+    token = config.LINE_CHANNEL_ACCESS_TOKEN
+    if not (token and user_id):
+        return False
+    resp = requests.post(
+        "https://api.line.me/v2/bot/message/push",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"to": user_id, "messages": [{"type": "text", "text": message}]},
+        timeout=10,
+    )
+    resp.raise_for_status()
+    return True
+
+
 def send_discord(message: str) -> bool:
     return send_discord_to(config.DISCORD_WEBHOOK_URL, message)
 

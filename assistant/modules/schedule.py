@@ -169,6 +169,36 @@ def _generate_class_tasks(slots: list[dict], days_ahead: int = 120) -> int:
     return created
 
 
+def create_recurring_tasks(title: str, task_type: str, weekday: str, time_str: str, weeks: int = 16) -> int:
+    """Create tasks for every weekly occurrence of a recurring event."""
+    wd = _DAY_WD.get(weekday.lower())
+    if wd is None:
+        return 0
+    now = config.now()
+    today = now.date()
+    end_date = today + timedelta(weeks=weeks)
+    existing_keys = {(t.get("title", ""), t.get("due", "")) for t in json_store.tasks.load()}
+    reminders_list = json_store.reminders.load()
+    created = 0
+    d = _next_weekday(wd, today)
+    while d <= end_date:
+        due = f"{d.isoformat()}T{time_str}"
+        key = (title, due)
+        if key not in existing_keys:
+            saved = json_store.tasks.append({
+                "title": title, "type": task_type, "due": due,
+                "plan": [], "done": False, "created_at": now.isoformat(timespec="minutes"),
+            })
+            for r in _build_reminders(title, due):
+                reminders_list.append({"task_id": saved["id"], **r, "sent": False})
+            existing_keys.add(key)
+            created += 1
+        d += timedelta(weeks=1)
+    if created:
+        json_store.reminders.save(reminders_list)
+    return created
+
+
 def import_class_schedule(slots: list[dict]) -> dict:
     """Save recurring slots and generate tasks for the next 4 months."""
     json_store.class_schedule.set({"slots": slots})

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Student AI — ผู้ช่วยส่วนตัว</title>
 <meta name="theme-color" content="#5548f2">
-<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";</script>
+<script>document.documentElement.dataset.theme = localStorage.getItem("theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");</script>
 <link rel="manifest" href="/static/manifest.webmanifest">
 <link rel="apple-touch-icon" href="/static/icon.svg">
 <link rel="icon" href="/static/icon.svg">
@@ -126,6 +126,7 @@
               <span class="conn" id="conn-api"><span class="dot"></span> Gemini</span>
               <span class="conn" id="conn-sheets"><span class="dot"></span> Sheets</span>
               <span class="conn" id="conn-discord"><span class="dot"></span> Discord</span>
+              <span class="conn" id="conn-line"><span class="dot"></span> LINE</span>
               <span class="conn" id="conn-push"><span class="dot"></span> แจ้งเตือนบนเครื่อง</span>
             </div>
             <div class="notify-settings">
@@ -133,6 +134,10 @@
               <div class="ns-row">
                 <input type="url" id="discord-webhook" placeholder="วาง Discord webhook URL ของตัวเอง" autocomplete="off">
                 <button class="mini-btn" id="discord-save">บันทึก</button>
+              </div>
+              <div class="ns-row">
+                <input type="text" id="line-user-id" placeholder="LINE User ID (Uxxxxxxxx…)" autocomplete="off">
+                <button class="mini-btn" id="line-save">บันทึก</button>
               </div>
               <div class="ns-row">
                 <button class="mini-btn" id="push-enable"><span class="ic" data-icon="bell"></span> เปิดแจ้งเตือนบนเครื่องนี้</button>
@@ -143,7 +148,25 @@
               <a class="mini-btn" href="/api/export/expenses.csv" download><span class="ic" data-icon="download"></span> Export CSV</a>
               <button class="mini-btn" id="install-btn" hidden><span class="ic" data-icon="phone"></span> ติดตั้งแอป</button>
             </div>
+          <!-- ── Grades card ── -->
+          <div class="dash-card card-grades span-2" id="grades-card">
+            <div class="dash-card-head">
+              <span class="head-title"><span class="ic" data-icon="award"></span> เกรด &amp; GPA</span>
+              <button class="mini-btn" id="add-grade-btn">+ เพิ่มวิชา</button>
+            </div>
+            <div class="grades-summary">
+              <div class="grades-gpa-wrap">
+                <div class="grades-gpa-big" id="grades-gpa">—</div>
+                <div class="grades-gpa-label">GPA (4.0)</div>
+              </div>
+              <div class="grades-credits-wrap">
+                <div class="grades-gpa-big grades-credits-num" id="grades-credits">0</div>
+                <div class="grades-gpa-label">หน่วยกิต</div>
+              </div>
+            </div>
+            <div id="grades-list"></div>
           </div>
+
         </div>
       </div>
     </section>
@@ -198,7 +221,13 @@
 
     <!-- ───── Tasks ───── -->
     <section class="view view-scroll" id="view-tasks" aria-label="งานและแผนอ่าน">
-      <header class="view-head"><h2><span class="ic" data-icon="book"></span> งาน &amp; แผนอ่านหนังสือ</h2><p>deadline ทั้งหมดพร้อมแผนที่ AI จัดให้</p></header>
+      <header class="view-head view-head-row">
+        <div><h2><span class="ic" data-icon="book"></span> งาน &amp; แผนอ่านหนังสือ</h2><p>deadline ทั้งหมดพร้อมแผนที่ AI จัดให้</p></div>
+        <div class="head-actions">
+          <input type="search" id="task-search" class="mini-search" placeholder="ค้นหางาน…" autocomplete="off" aria-label="ค้นหางาน">
+          <button class="mini-btn" id="recur-task-btn"><span class="ic" data-icon="repeat"></span> วนซ้ำ</button>
+        </div>
+      </header>
       <div class="task-grid" id="task-grid"></div>
     </section>
 
@@ -365,6 +394,99 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=11"></script>
+<!-- ───── Recurring task modal ───── -->
+<div class="modal-backdrop" id="recur-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3><span class="ic" data-icon="repeat"></span> งานวนซ้ำทุกสัปดาห์</h3>
+      <button class="modal-close" data-close aria-label="ปิด"><span class="ic" data-icon="x"></span></button>
+    </div>
+    <label class="field"><span>ชื่องาน</span>
+      <input id="recur-title" placeholder="เช่น รายงาน Lab สรีรวิทยา" autocomplete="off">
+    </label>
+    <label class="field"><span>ประเภท</span>
+      <select id="recur-type" style="width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--text);font-family:var(--font-body);font-size:14px;outline:0">
+        <option value="assignment">assignment</option>
+        <option value="lab">lab</option>
+        <option value="exam">exam</option>
+        <option value="project">project</option>
+        <option value="reading">reading</option>
+        <option value="other">other</option>
+      </select>
+    </label>
+    <div class="field-grid">
+      <label class="field"><span>วัน</span>
+        <select id="recur-weekday" style="width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--text);font-family:var(--font-body);font-size:14px;outline:0">
+          <option value="monday">จันทร์</option><option value="tuesday">อังคาร</option>
+          <option value="wednesday">พุธ</option><option value="thursday">พฤหัสบดี</option>
+          <option value="friday">ศุกร์</option><option value="saturday">เสาร์</option>
+          <option value="sunday">อาทิตย์</option>
+        </select>
+      </label>
+      <label class="field"><span>เวลา deadline</span>
+        <input type="time" id="recur-time" value="23:59" style="width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--text);font-family:var(--font-body);font-size:14px;outline:0">
+      </label>
+    </div>
+    <label class="field"><span>จำนวนสัปดาห์ (จากวันนี้)</span>
+      <input type="number" id="recur-weeks" value="16" min="1" max="26" style="width:100%;padding:10px 13px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--text);font-family:var(--font-body);font-size:14px;outline:0">
+    </label>
+    <p id="recur-err" style="color:var(--danger);font-size:13px;min-height:16px"></p>
+    <div class="modal-foot-row">
+      <button class="btn-primary" id="recur-submit">สร้างงานวนซ้ำ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───── Grade add modal ───── -->
+<div class="modal-backdrop" id="grade-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3><span class="ic" data-icon="award"></span> เพิ่มวิชา</h3>
+      <button class="modal-close" data-close aria-label="ปิด"><span class="ic" data-icon="x"></span></button>
+    </div>
+    <label class="field"><span>ชื่อวิชา</span>
+      <input id="grade-subject" placeholder="เช่น Organic Chemistry" autocomplete="off">
+    </label>
+    <div class="field-grid">
+      <label class="field"><span>หน่วยกิต</span>
+        <input type="number" id="grade-credits" value="3" min="0.5" max="6" step="0.5" style="width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--text);font-family:var(--font-body);font-size:13px;outline:0">
+      </label>
+      <label class="field"><span>เกรด</span>
+        <select id="grade-letter" style="width:100%;padding:8px 11px;border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--text);font-family:var(--font-body);font-size:13px;outline:0">
+          <option>A</option><option>B+</option><option>B</option>
+          <option>C+</option><option>C</option><option>D+</option>
+          <option>D</option><option>F</option>
+        </select>
+      </label>
+    </div>
+    <div class="modal-foot-row">
+      <button class="btn-primary" id="grade-submit">บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───── Pomodoro floating widget ───── -->
+<div id="pomo-widget">
+  <button id="pomo-fab" title="Pomodoro Timer" aria-label="Pomodoro Timer">🍅</button>
+  <div id="pomo-panel" hidden>
+    <div class="pomo-header">
+      <span id="pomo-mode">🍅 Focus</span>
+      <button class="modal-close" id="pomo-close" aria-label="ปิด"><span class="ic" data-icon="x"></span></button>
+    </div>
+    <div id="pomo-time" class="pomo-time">25:00</div>
+    <div class="pomo-controls">
+      <button id="pomo-start" class="btn-primary">▶</button>
+      <button id="pomo-reset" class="mini-btn">↺</button>
+    </div>
+    <div id="pomo-sessions" class="pomo-sessions">0 sessions วันนี้</div>
+    <div class="pomo-tabs">
+      <button class="pomo-tab active" data-mode="focus" data-secs="1500">Focus</button>
+      <button class="pomo-tab" data-mode="short" data-secs="300">Break</button>
+      <button class="pomo-tab" data-mode="long" data-secs="900">Long Break</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=12"></script>
 </body>
 </html>

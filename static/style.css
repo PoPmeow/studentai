@@ -573,6 +573,112 @@ input:focus:not(:focus-visible),
   .hero-orb { animation: none; }
 }
 
+/* ═══════════ Task search + recurring button row ═══════════ */
+.view-head-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 20px 28px 6px; flex-wrap: wrap;
+}
+.view-head-row h2 { margin: 0; flex: 0 0 auto; }
+.mini-search {
+  flex: 1; min-width: 140px; max-width: 260px;
+  padding: 7px 12px; border-radius: 10px;
+  border: 1.5px solid var(--line); background: var(--panel);
+  color: var(--text); font-size: 13px; font-family: var(--font-body);
+  transition: border-color .15s, box-shadow .15s;
+}
+.mini-search:focus { border-color: var(--brain); box-shadow: 0 0 0 3px color-mix(in srgb, var(--brain) 18%, transparent); outline: none; }
+.mini-search::placeholder { color: var(--muted); }
+.empty-mini { color: var(--muted); font-size: 13px; padding: 12px 0; text-align: center; }
+
+/* ═══════════ Grades card ═══════════ */
+.card-grades .head-title .ic { color: var(--brain); }
+.grades-summary {
+  display: flex; align-items: baseline; gap: 4px; margin-bottom: 14px;
+}
+.grades-gpa-big {
+  font-size: 42px; font-weight: 700; font-family: var(--font-display);
+  line-height: 1; color: var(--brain); font-variant-numeric: tabular-nums;
+}
+.grades-gpa-label { font-size: 12px; color: var(--muted); align-self: flex-end; margin-bottom: 4px; }
+.grades-credits { font-size: 12px; color: var(--muted); margin-left: auto; align-self: flex-end; }
+.grade-row {
+  display: grid; grid-template-columns: 1fr auto auto auto;
+  align-items: center; gap: 10px; padding: 9px 12px;
+  border-radius: 10px; background: color-mix(in srgb, var(--brain) 4%, transparent);
+  margin-bottom: 6px; transition: background .15s;
+}
+.grade-row:hover { background: color-mix(in srgb, var(--brain) 8%, transparent); }
+.grade-subj { font-size: 13.5px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grade-cr { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.grade-letter { font-size: 14px; font-weight: 700; font-family: var(--font-mono); min-width: 28px; text-align: center; font-variant-numeric: tabular-nums; }
+.grade-del {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  width: 22px; height: 22px; border-radius: 6px; font-size: 11px;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s;
+}
+.grade-del:hover { background: color-mix(in srgb, var(--danger) 12%, transparent); color: var(--danger); }
+
+/* ═══════════ Pomodoro floating widget ═══════════ */
+#pomo-widget {
+  position: fixed; bottom: 24px; right: 24px; z-index: 200;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 10px;
+}
+@media (max-width: 720px) {
+  #pomo-widget { bottom: calc(70px + env(safe-area-inset-bottom)); right: 16px; }
+}
+#pomo-fab {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--brain); color: #fff; font-size: 24px; border: none; cursor: pointer;
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--brain) 45%, transparent);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform .18s, box-shadow .18s;
+}
+#pomo-fab:hover { transform: scale(1.08); box-shadow: 0 6px 24px color-mix(in srgb, var(--brain) 55%, transparent); }
+#pomo-panel {
+  background: var(--panel); border: 1.5px solid var(--line);
+  border-radius: 20px; padding: 20px 22px; width: 240px;
+  box-shadow: 0 12px 40px rgba(0,0,0,.18);
+}
+.pomo-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+.pomo-tab {
+  flex: 1; padding: 5px 0; border-radius: 8px; border: none; cursor: pointer;
+  font-size: 11px; font-family: var(--font-body); font-weight: 600;
+  background: transparent; color: var(--muted); transition: background .15s, color .15s;
+}
+.pomo-tab.active { background: color-mix(in srgb, var(--brain) 15%, transparent); color: var(--brain); }
+.pomo-header {
+  display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;
+}
+.pomo-header #pomo-mode { font-size: 13px; font-weight: 600; color: var(--brain); }
+.pomo-header .modal-close { flex: none; }
+.pomo-time {
+  font-family: var(--font-mono); font-size: 52px; font-weight: 700;
+  text-align: center; line-height: 1; letter-spacing: -1px;
+  color: var(--text); font-variant-numeric: tabular-nums; margin-bottom: 6px;
+}
+#pomo-mode { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+.pomo-controls { display: flex; gap: 10px; justify-content: center; margin-bottom: 14px; }
+.pomo-controls button {
+  padding: 8px 18px; border-radius: 12px; border: none; cursor: pointer;
+  font-size: 18px; font-family: var(--font-body);
+  transition: background .15s, transform .1s;
+}
+#pomo-start {
+  background: var(--brain); color: #fff; flex: 1;
+  box-shadow: 0 2px 10px color-mix(in srgb, var(--brain) 35%, transparent);
+}
+#pomo-start:hover { filter: brightness(1.1); }
+#pomo-reset { background: var(--bg-soft); color: var(--muted); padding: 8px 14px; }
+#pomo-reset:hover { background: var(--line); }
+.pomo-sessions { text-align: center; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.pomo-close-row { display: flex; justify-content: flex-end; }
+#pomo-close {
+  background: none; border: none; color: var(--muted); cursor: pointer;
+  font-size: 12px; padding: 2px 6px; border-radius: 6px;
+}
+#pomo-close:hover { color: var(--text); background: var(--bg-soft); }
+
 /* ═══════════ Login overlay + account ═══════════ */
 .auth-overlay {
   position: fixed; inset: 0; z-index: 200; display: none; place-items: center;
