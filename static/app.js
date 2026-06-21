@@ -169,8 +169,6 @@ function renderDashboard(d) {
   const lw = $("#line-user-id");
   if (lw) lw.placeholder = (d.notify && d.notify.line)
     ? "ตั้ง LINE ไว้แล้ว — วาง ID ใหม่เพื่อเปลี่ยน" : "LINE User ID (Uxxxxxxxx…)";
-  renderGrades(d.grades || []);
-
   // hero
   $("#hero-greet").textContent = greeting();
   const now = new Date();
@@ -183,6 +181,7 @@ function renderDashboard(d) {
   renderDonut(d.summary);
   renderAgenda(d.tasks);
   renderTasksView(d.tasks);
+  renderGrades(d.grades || []);
 }
 
 function renderBudget(b) {
@@ -913,11 +912,13 @@ const GRADE_POINTS = { "A": 4.0, "B+": 3.5, "B": 3.0, "C+": 2.5, "C": 2.0, "D+":
 const GRADE_COLOR = { "A": "var(--schedule)", "B+": "var(--schedule)", "B": "var(--brain)", "C+": "var(--brain)", "C": "var(--expense)", "D+": "var(--expense)", "D": "var(--danger)", "F": "var(--danger)" };
 
 function renderGrades(grades) {
+  const gpaEl = $("#grades-gpa"), crEl = $("#grades-credits"), listEl = $("#grades-list");
+  if (!gpaEl || !listEl) return;
   const totalCr = grades.reduce((s, g) => s + (g.credits || 0), 0);
   const gpa = totalCr ? grades.reduce((s, g) => s + (g.credits || 0) * (g.points || 0), 0) / totalCr : null;
-  $("#grades-gpa").textContent = gpa !== null ? gpa.toFixed(2) : "—";
-  $("#grades-credits").textContent = totalCr;
-  $("#grades-list").innerHTML = grades.length
+  gpaEl.textContent = gpa !== null ? gpa.toFixed(2) : "—";
+  if (crEl) crEl.textContent = totalCr;
+  listEl.innerHTML = grades.length
     ? grades.map((g) => `<div class="grade-row">
         <span class="grade-subj">${esc(g.subject)}</span>
         <span class="grade-cr">${g.credits} หน่วย</span>
