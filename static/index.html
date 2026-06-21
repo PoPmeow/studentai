@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600&family=Anuphan:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/style.css?v=12">
+<link rel="stylesheet" href="/static/style.css?v=13">
 </head>
 <body>
 
@@ -57,12 +57,15 @@
     <!-- ───── Dashboard ───── -->
     <section class="view view-scroll active" id="view-home" aria-label="หน้าหลัก">
       <div class="home-wrap">
-        <header class="hero">
-          <div>
-            <div class="hero-greet" id="hero-greet">สวัสดี 👋</div>
-            <div class="hero-date" id="hero-date"></div>
+        <header class="hero-banner">
+          <div class="hero-banner-mesh" aria-hidden="true"></div>
+          <div class="hero-banner-left">
+            <div class="hero-eyebrow" id="hero-date"></div>
+            <div class="hero-greet" id="hero-greet">สวัสดี</div>
           </div>
-          <div class="hero-streak" id="hero-streak-chip"></div>
+          <div class="hero-banner-right">
+            <div class="hero-streak" id="hero-streak-chip"></div>
+          </div>
         </header>
 
         <div class="dash-grid">
@@ -148,6 +151,7 @@
               <a class="mini-btn" href="/api/export/expenses.csv" download><span class="ic" data-icon="download"></span> Export CSV</a>
               <button class="mini-btn" id="install-btn" hidden><span class="ic" data-icon="phone"></span> ติดตั้งแอป</button>
             </div>
+          </div>
           <!-- ── Grades card ── -->
           <div class="dash-card card-grades span-2" id="grades-card">
             <div class="dash-card-head">
@@ -487,6 +491,6 @@
   </div>
 </div>
 
-<script src="/static/app.js?v=12"></script>
+<script src="/static/app.js?v=13"></script>
 </body>
 </html>

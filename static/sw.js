@@ -1,5 +1,5 @@
 /* Student AI service worker — installable PWA + offline shell + web push */
-const CACHE = "studentai-v12";
+const CACHE = "studentai-v13";
 const SHELL = ["/", "/static/style.css", "/static/app.js", "/static/icon.svg"];
 
 self.addEventListener("install", (e) => {
