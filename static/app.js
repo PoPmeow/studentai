@@ -345,6 +345,7 @@ function renderResult(data) {
 
 /* ════════ Calendar ════════ */
 let calMonth = new Date();
+let selCalDay = null;
 function renderCalendar() {
   const y = calMonth.getFullYear(), m = calMonth.getMonth();
   $("#cal-label").textContent = `${THAI_MONTHS[m]} ${y + 543}`;
@@ -379,38 +380,32 @@ function renderCalendar() {
   }
   $("#cal-grid").innerHTML = html;
   $("#cal-grid")._byDay = byDay;
-  renderCalAgenda(byDay);
+  showCalDay(selCalDay || todayKey);
 }
-function renderCalAgenda(byDay) {
-  const el = $("#cal-agenda");
+function showCalDay(key) {
+  selCalDay = key;
+  const el = $("#cal-day");
   if (!el) return;
-  const bd = byDay || $("#cal-grid")._byDay || {};
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  let html = `<div class="ag-header">7 วันข้างหน้า</div>`;
-  for (let i = 0; i < 7; i++) {
-    const d = new Date(today); d.setDate(today.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
-    const items = (bd[key] || []).slice().sort((a, b) =>
-      (a.time || "99:99") <= (b.time || "99:99") ? -1 : 1);
-    const dayName = i === 0 ? "วันนี้" : i === 1 ? "พรุ่งนี้" : THAI_DOW[d.getDay()];
-    const dayDate = `${d.getDate()} ${THAI_MONTHS[d.getMonth()]}`;
-    const itemsHtml = items.map((it) => {
-      if (it.type === "class") {
-        const t = it.time ? `<span class="ag-time">${esc(it.time)}</span>` : "";
-        return `<div class="ag-item ag-class">${t}<span>${esc(it.label)}</span></div>`;
-      }
-      if (it.type === "plan") {
-        return `<div class="ag-item ag-plan"><span>${esc(it.label)}</span></div>`;
-      }
-      const ul = daysLeft(key + "T23:59");
-      return `<div class="ag-item ag-task${ul?.urgent ? " urgent" : ""}"><span class="ag-tag">${esc(it.type)}</span><span>${esc(it.label)}</span></div>`;
-    }).join("") || `<span class="ag-vacant">ว่าง</span>`;
-    html += `<div class="ag-day${i === 0 ? " ag-today" : ""}">
-      <div class="ag-day-head"><b class="ag-day-name">${dayName}</b><span class="ag-day-date">${dayDate}</span></div>
-      <div class="ag-items">${itemsHtml}</div>
-    </div>`;
+  $$(".cal-cell").forEach((c) => c.classList.toggle("sel", c.dataset.day === key));
+  if (!key) { el.innerHTML = ""; return; }
+  const items = ($("#cal-grid")._byDay || {})[key] || [];
+  const sorted = items.slice().sort((a, b) => (a.time || "99:99") <= (b.time || "99:99") ? -1 : 1);
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const label = key === todayKey ? "วันนี้" : fmtDate(key);
+  if (!sorted.length) {
+    el.innerHTML = `<div class="cal-day-panel"><span class="cal-day-title">${label}</span><span class="ag-vacant">ไม่มีงานหรือนัดหมาย</span></div>`;
+    return;
   }
-  el.innerHTML = html;
+  el.innerHTML = `<div class="cal-day-panel"><span class="cal-day-title">${label}</span><div class="ag-items">`
+    + sorted.map((i) => {
+        if (i.type === "class") {
+          const t = i.time ? `<span class="ag-time">${esc(i.time)}</span>` : "";
+          return `<div class="ag-item ag-class">${t}<span>${esc(i.label)}</span></div>`;
+        }
+        if (i.type === "plan") return `<div class="ag-item ag-plan"><span>${esc(i.label)}</span></div>`;
+        const ul = daysLeft(key + "T23:59");
+        return `<div class="ag-item ag-task${ul?.urgent ? " urgent" : ""}"><span class="ag-tag">${esc(i.type)}</span><span>${esc(i.label)}</span></div>`;
+      }).join("") + `</div></div>`;
 }
 
 /* ════════ Tasks view ════════ */
@@ -510,8 +505,16 @@ $("#expense-table").addEventListener("contextmenu", (e) => {
 
 /* ════════ Actions ════════ */
 async function refreshFrom(data) { if (data.dashboard) { renderDashboard(data.dashboard); loadInsight(); } if (activeView() === "expenses") loadExpensesView(); }
-async function taskDone(id) { try { await refreshFrom(await api(`/api/tasks/${id}/done`, { method: "POST" })); toast("ปิดงานแล้ว ✓", true); } catch (e) { toast(e.message); } }
-async function deleteTask(id) { try { await refreshFrom(await api(`/api/tasks/${id}`, { method: "DELETE" })); toast("ลบงานแล้ว", true); } catch (e) { toast(e.message); } }
+async function taskDone(id) {
+  const card = document.querySelector(`.task-card[data-id="${id}"]`);
+  if (card) { card.style.transition = "opacity .18s, transform .18s"; card.style.opacity = "0"; card.style.transform = "scale(0.97)"; }
+  try { await refreshFrom(await api(`/api/tasks/${id}/done`, { method: "POST" })); toast("ปิดงานแล้ว ✓", true); } catch (e) { if (card) { card.style.opacity = ""; card.style.transform = ""; } toast(e.message); }
+}
+async function deleteTask(id) {
+  const card = document.querySelector(`.task-card[data-id="${id}"]`);
+  if (card) { card.style.transition = "opacity .18s, transform .18s"; card.style.opacity = "0"; card.style.transform = "translateX(-8px)"; }
+  try { await refreshFrom(await api(`/api/tasks/${id}`, { method: "DELETE" })); toast("ลบงานแล้ว", true); } catch (e) { if (card) { card.style.opacity = ""; card.style.transform = ""; } toast(e.message); }
+}
 async function deleteExpense(id) { try { await refreshFrom(await api(`/api/expenses/${id}`, { method: "DELETE" })); toast("ลบรายการแล้ว", true); } catch (e) { toast(e.message); } }
 async function changeCategory(id, category) { try { await refreshFrom(await api(`/api/expenses/${id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ category }) })); toast(`ย้ายไปหมวด ${category}`, true); } catch (e) { toast(e.message); } }
 function copyTaskPlan(card) {
@@ -584,7 +587,7 @@ $$(".nav-item").forEach((b) => b.addEventListener("click", () => switchView(b.da
 $("#task-grid").addEventListener("click", (e) => { const b = e.target.closest(".task-done-btn"); if (b) taskDone(+b.dataset.id); });
 $("#cal-grid").addEventListener("click", (e) => {
   const c = e.target.closest(".cal-cell:not(.empty)");
-  if (c) { $$(".cal-cell").forEach((x) => x.classList.remove("sel")); c.classList.add("sel"); }
+  if (c) showCalDay(c.dataset.day);
 });
 $("#cal-prev").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() - 1); renderCalendar(); });
 $("#cal-next").addEventListener("click", () => { calMonth.setMonth(calMonth.getMonth() + 1); renderCalendar(); });

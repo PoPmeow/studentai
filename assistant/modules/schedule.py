@@ -123,7 +123,7 @@ def _next_weekday(target_wd: int, from_date: date) -> date:
     return from_date + timedelta(days=days_ahead)
 
 
-def _generate_class_tasks(slots: list[dict], days_ahead: int = 14) -> int:
+def _generate_class_tasks(slots: list[dict], days_ahead: int = 120) -> int:
     """Create one-time tasks for every class occurrence in the next `days_ahead` days."""
     now = config.now()
     today = now.date()
@@ -170,7 +170,7 @@ def _generate_class_tasks(slots: list[dict], days_ahead: int = 14) -> int:
 
 
 def import_class_schedule(slots: list[dict]) -> dict:
-    """Save recurring slots and generate tasks for the next 14 days."""
+    """Save recurring slots and generate tasks for the next 4 months."""
     json_store.class_schedule.set({"slots": slots})
     created = _generate_class_tasks(slots)
     return {"slots_count": len(slots), "tasks_created": created}
